@@ -1,7 +1,7 @@
 <div align="center">
   <a href="https://react-video-audio-player.vercel.app">   
     <picture>
-      <img alt="React Video Audio Player logo" src="https://i.ibb.co/KxdCgQ32/react-video-audio-player.png" height="128">
+      <img alt="React Video Audio Player logo" src="https://i.ibb.co/nsrdWgxg/Logo.png" height="128">
     </picture>
   </a>
 <h1>React Video Audio Player 🎬🎵</h1>
