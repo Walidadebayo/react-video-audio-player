@@ -1,0 +1,56 @@
+name: Publish to npm
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: Get package.json version
+        id: package_version
+        run: echo "version=$(node -p "require('./package/package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Get latest published NPM version
+        id: npm_version
+        run: echo "version=$(npm show $(node -p "require('./package/package.json').name") version || echo '0.0.0')" >> $GITHUB_OUTPUT
+
+      - name: Check if version has changed
+        id: check_version
+        run: |
+          if [ "${{ steps.package_version.outputs.version }}" == "${{ steps.npm_version.outputs.version }}" ]; then
+            echo "skip_publish=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip_publish=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: package
+        if: steps.check_version.outputs.skip_publish == 'false'
+
+      - name: Build package
+        run: npm run build
+        working-directory: package
+        if: steps.check_version.outputs.skip_publish == 'false'
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: package
+        if: steps.check_version.outputs.skip_publish == 'false'

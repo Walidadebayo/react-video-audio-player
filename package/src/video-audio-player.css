@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.accent-color {
+  background-color: var(--accent-color);
+}
+
+.accent-color-hover:hover {
+  background-color: var(--accent-color);
+}
+
+.accent-color-input {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  height: 4px !important;
+  background: linear-gradient(
+    to right,
+    var(--accent-color) 0%,
+    var(--accent-color) var(--value, 0%),
+    #94a3b8 var(--value, 0%),
+    #94a3b8 100%
+  ) !important;
+  outline: none !important;
+  transition: background 0.2s !important;
+}
+
+.accent-color-input::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 15px !important;
+  height: 15px !important;
+  border-radius: 50% !important;
+  background: white !important;
+  cursor: pointer !important;
+  border: 3px solid var(--accent-color) !important;
+  transition: transform 0.2s !important;
+}
+
+.accent-color-input::-webkit-slider-thumb:hover {
+  transform: scale(1.1) !important;
+}
+
+.accent-color-input::-moz-range-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 15px !important;
+  height: 15px !important;
+  border-radius: 50% !important;
+  background: white !important;
+  cursor: pointer !important;
+  border: 3px solid var(--accent-color) !important;
+  transition: transform 0.2s !important;
+}
+
+.accent-color-input::-moz-range-thumb:hover {
+  transform: scale(1.1) !important;
+}

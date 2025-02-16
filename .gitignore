@@ -1,0 +1,12 @@
+.vscode
+dist/
+node_modules/
+types/
+package/README copy.md
+package/dist/
+package/node_modules/
+website/node_modules/
+website/.next/
+website/out/
+website/next-env.d.ts
+website/.vercel/

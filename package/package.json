@@ -1,0 +1,96 @@
+{
+  "name": "react-video-audio-player",
+  "version": "1.0.0",
+  "description": "React Video Audio Player is a lightweight, customizable React video player and React audio player that supports video, audio, and streaming playback. Perfect for building modern media applications.",
+  "license": "MIT",
+  "author": {
+    "name": "Walid Adebayo",
+    "email": "adebayowalid@gmail.com",
+    "url": "https://walidadebayo.netlify.app"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Walidadebayo/react-video-audio-player.git"
+  },
+  "keywords": [
+    "react",
+    "media player",
+    "video player",
+    "audio player",
+    "react video player",
+    "react audio player",
+    "react media player",
+    "react av player",
+    "react multimedia",
+    "media playback",
+    "react music player",
+    "react streaming player",
+    "react video streaming",
+    "react audio streaming",
+    "react video streaming player",
+    "react audio streaming player",
+    "react player"
+  ],
+  "funding": {
+    "type": "individual",
+    "url": "https://www.buymeacoffee.com/walidadebayo"
+  },
+  "bugs": {
+    "url": "https://github.com/Walidadebayo/react-video-audio-player/issues"
+  },
+  "homepage": "https://react-video-audio-player.vercel.app",
+  "scripts": {
+    "test": "tsc --project tsconfig.test.json && jest",
+    "build": "tsc && npm run build:css",
+    "build:css": "tailwindcss -i ./src/video-audio-player.css -o ./dist/video-audio-player.css --minify"
+  },
+  "dependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0",
+    "wavesurfer.js": "^7.9.0"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0"
+  },
+  "contributors": [
+    {
+      "name": "Walid Adebayo",
+      "email": "adebayowalid@gmail.com",
+      "githubUsername": "Walidadebayo",
+      "url": "https://github.com/Walidadebayo"
+    }
+  ],
+  "devDependencies": {
+    "@babel/core": "^7.26.8",
+    "@babel/preset-env": "^7.26.8",
+    "@babel/preset-react": "^7.26.3",
+    "@babel/preset-typescript": "^7.26.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@types/jest": "^29.5.14",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@types/testing-library__react": "^10.0.1",
+    "babel-jest": "^29.7.0",
+    "identity-obj-proxy": "^3.0.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "tailwindcss": "^3.4.17",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.3"
+  }
+}
