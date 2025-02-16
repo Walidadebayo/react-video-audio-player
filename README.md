@@ -1,7 +1,11 @@
-<center>
-<img src="https://i.ibb.co/KxdCgQ32/react-video-audio-player.png" width="250" height="250" alt="React Video Audio Player" />
+<div align="center">
+  <a href="https://react-video-audio-player.vercel.app">   
+    <picture>
+      <img alt="React Video Audio Player logo" src="https://i.ibb.co/KxdCgQ32/react-video-audio-player.png" height="128">
+    </picture>
+  </a>
 <h1>React Video Audio Player 🎬🎵</h1>
-</center>
+</div>
 
 ![npm version](https://img.shields.io/npm/v/react-video-audio-player)
 [![Live Demo](https://img.shields.io/badge/demo-live-blue)](https://react-video-audio-player.vercel.app/demo)
