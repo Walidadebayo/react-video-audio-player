@@ -53,7 +53,7 @@
     "react": "^18.3.1",
     "react-color-palette": "^7.3.0",
     "react-dom": "^18.3.1",
-    "react-video-audio-player": "^1.0.6",
+    "react-video-audio-player": "^1.0.7",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
     "wavesurfer.js": "^7.9.1"

@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useRef, useCallback, useEffect, FC, useState, JSX } from "react";
 
 interface SelectProps {

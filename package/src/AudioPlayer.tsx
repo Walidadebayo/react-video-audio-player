@@ -1,6 +1,6 @@
-import React from "react";
+"use client";
 
-import {
+import React, {
   useState,
   useCallback,
   useEffect,

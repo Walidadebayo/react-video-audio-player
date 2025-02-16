@@ -29,7 +29,7 @@ export default function DocsPage() {
               <section>
                 <h2 className="text-3xl font-bold mb-4">Video Player Props</h2>
                 <Clipboard
-                  text={`import { VideoPlayerProps, preload, VideoControlOptionsToRemove, VideoMimeType } from "react-video-audio-player";`}
+                  text={`import { VideoPlayerProps, preload, VideoControlOptionsToRemove, VideoMimeType, sources } from "react-video-audio-player";`}
                 />
                 <div className="overflow-x-auto">
                   <Table>

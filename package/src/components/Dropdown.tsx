@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useRef, useCallback, useEffect, FC, JSX } from "react";
 
 interface DropdownProps {
