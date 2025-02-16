@@ -10,11 +10,9 @@ import React, {
 } from "react";
 import WaveSurfer from "wavesurfer.js";
 import { formatTime } from "./lib/utils";
-import {
-  updateRangeBackground,
-  updateRangeBackgroundRef,
-} from "./VideoPlayer";
+import { updateRangeBackground, updateRangeBackgroundRef } from "./VideoPlayer";
 import Select from "./components/Select";
+import "./video-audio-player.css";
 
 export type AudioControlOptionsToRemove =
   | "playPause"

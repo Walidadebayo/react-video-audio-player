@@ -12,6 +12,7 @@ import React, {
 import { formatTime } from "./lib/utils";
 import Select from "./components/Select";
 import Dropdown from "./components/Dropdown";
+import "./video-audio-player.css";
 
 export type preload = "auto" | "metadata" | "none" | "";
 export type VideoControlOptionsToRemove =
