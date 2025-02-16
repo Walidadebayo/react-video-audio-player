@@ -618,10 +618,11 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
             minHeight: "180px",
           } as CSSProperties
         }
+        className="video-player-wrapper"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <div className="relative">
+        <div className="control-relative">
           <video
             src={src}
             ref={videoRef}
@@ -653,15 +654,15 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
               ))}
           </video>
           {showTooltip && (
-            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 mt-2 px-2 py-1 bg-black text-white text-xs rounded">
+            <div className="show-tooltip">
               Double click to{" "}
               {doubleClickToFullscreen ? "fullscreen" : "play/pause"}
             </div>
           )}
 
           {videoError || (!src && !sources?.length) ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 overflow-hidden">
-              <div className="text-red-500 flex flex-col gap-4 justify-center items-center">
+            <div className="error-overlay">
+              <div className="error-message">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
@@ -677,7 +678,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                   <path d="M12 9v4" />
                   <path d="M12 17h.01" />
                 </svg>
-                <span className="text-sm text-center">
+                <span>
                   <strong>Error:</strong>{" "}
                   {!src && !sources?.length
                     ? "Please provide a video source URL or sources array."
@@ -691,7 +692,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                         setVideoError(false);
                       }
                     }}
-                    className="text-white bg-red-500 px-4 py-2 rounded-md hover:bg-red-600"
+                    className="error-reload-button"
                   >
                     Reload
                   </button>
@@ -700,9 +701,9 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
             </div>
           ) : controls ? (
             <div
-              className={`absolute inset-0 flex items-center justify-center ${
-                showControls ? "opacity-100" : "opacity-0"
-              } transition-opacity duration-300`}
+              className={`controls ${
+                showControls ? "show-controls" : "hide-controls"
+              }`}
               onClick={handleVideoClick}
               onDoubleClick={
                 disableDoubleClick ? undefined : handleVideoDoubleClick
@@ -711,12 +712,12 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
               <div>
                 <div
                   className={`
-                    ${containerWidth < 400 ? "hidden" : "block"}`}
+                    ${containerWidth < 400 ? "hide-control" : "show-control"}`}
                 >
                   {!controlsToExclude.includes("center-playPause-button") && (
                     <button
                       onClick={togglePlay}
-                      className="hover:bg-black/90 w-16 h-16 text-white grid place-items-center rounded-full outline-none accent-color"
+                      className="center-playPause-button accent-color"
                       aria-label={isPlaying ? "Pause" : "Play"}
                     >
                       {!isPlaying ? (
@@ -736,8 +737,8 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                       ) : (
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          width="24"
-                          height="24"
+                          width="30"
+                          height="30"
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
@@ -754,13 +755,13 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                 </div>
                 <div
                   className={`
-                    ${containerWidth < 400 ? "block" : "hidden"}`}
+                    ${containerWidth < 400 ? "show-control" : "hide-control"}`}
                 >
-                  <span className="flex items-center justify-center gap-2">
+                  <span className="mobile-controls-wrapper">
                     {!controlsToExclude.includes("skip-forward-backward") && (
                       <button
                         onClick={() => skipTime(-10)}
-                        className="text-white p-1 rounded-lg bg-black/90 accent-color-hover"
+                        className="skip-forward-backward accent-color-hover"
                         aria-label="Rewind 10 seconds"
                       >
                         <svg
@@ -777,7 +778,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                     {!controlsToExclude.includes("center-playPause-button") && (
                       <button
                         onClick={togglePlay}
-                        className="text-white p-1 rounded-lg accent-color"
+                        className="playPause accent-color"
                         aria-label={isPlaying ? "Pause" : "Play"}
                       >
                         {!isPlaying ? (
@@ -816,7 +817,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                       <button
                         onClick={() => skipTime(10)}
                         aria-label="Forward 10 seconds"
-                        className="text-white p-1 rounded-lg bg-black/90 accent-color-hover"
+                        className="skip-forward-backward accent-color-hover"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -832,11 +833,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                   </span>
                 </div>
               </div>
-              <div
-                className={`w-full bottom-0 absolute px-2 py-1 bg-black/70 ${
-                  showControls ? "opacity-100" : "opacity-0"
-                } transition-opacity duration-300`}
-              >
+              <div className="all-controls">
                 {!controlsToExclude.includes("progress") && (
                   <input
                     type="range"
@@ -850,22 +847,24 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                     }}
                     ref={timelineInputRef}
                     disabled={videoError}
-                    className="accent-color-input w-full"
+                    className="accent-color-input w-100"
                     aria-label="Seek control"
                   />
                 )}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="all-controls-bottom">
+                  <div className="left-controls child-controls">
                     <span
                       className={`${
-                        containerWidth < 400 ? "hidden" : "inline-flex gap-1"
+                        containerWidth < 400
+                          ? "hide-control"
+                          : "show-control-inline-flex"
                       }`}
                     >
                       {!controlsToExclude.includes("skip-forward-backward") && (
                         <button
                           onClick={() => skipTime(-10)}
                           disabled={videoError}
-                          className={`text-lg text-white p-1 rounded accent-color-hover`}
+                          className={`buttons accent-color-hover`}
                           aria-label="Rewind 10 seconds"
                         >
                           <svg
@@ -885,7 +884,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                         <button
                           onClick={togglePlay}
                           disabled={videoError}
-                          className={`text-lg text-white p-1 rounded accent-color-hover`}
+                          className={`buttons accent-color-hover`}
                           aria-label={isPlaying ? "Pause" : "Play"}
                         >
                           {!isPlaying ? (
@@ -924,7 +923,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                         <button
                           onClick={() => skipTime(10)}
                           disabled={videoError}
-                          className={`text-lg text-white p-1 rounded accent-color-hover`}
+                          className={`buttons accent-color-hover`}
                           aria-label="Forward 10 seconds"
                         >
                           <svg
@@ -939,17 +938,28 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                         </button>
                       )}
                     </span>
-                    <div className="text-white text-xs ">
-                      {!controlsToExclude.includes("current-time") &&
-                        formatTime(currentTime) + " "}
+                    <div className="current-time-duration">
+                    {!controlsToExclude.includes("current-time") && (
+                        <span className="show-control-inline-flex">
+                          {formatTime(currentTime)}
+                        </span>
+                      )}
+                      {!controlsToExclude.includes("duration") &&
+                        !controlsToExclude.includes("current-time") && (
+                          <span
+                            className={`${
+                              containerWidth < 160 ? "hide-control" : "show-control-inline-flex"
+                            }`}
+                          >
+                            /
+                          </span>
+                        )}
                       {!controlsToExclude.includes("duration") && (
                         <span
-                          className={`inline-block
-                      ${containerWidth < 160 ? "hidden" : "block"}`}
+                          className={`${
+                            containerWidth < 160 ? "hide-control" : "show-control-inline-flex"
+                          }`}
                         >
-                          {!controlsToExclude.includes("current-time") && (
-                            <span>/ </span>
-                          )}
                           {formatTime(duration)}
                         </span>
                       )}
@@ -958,7 +968,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                       <button
                         onClick={toggleMute}
                         disabled={videoError}
-                        className={`text-lg text-white p-1 rounded accent-color-hover`}
+                        className={`buttons accent-color-hover`}
                         aria-label={isMuted ? "Unmute" : "Mute"}
                       >
                         {isMuted ? (
@@ -1009,18 +1019,20 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                         }}
                         disabled={videoError}
                         ref={volumeInputRef}
-                        className={`sm:w-20 w-14 accent-color-input ${
-                          containerWidth < 310 ? "hidden" : "block"
+                        className={`volume-slider accent-color-input ${
+                          containerWidth < 300 ? "hide-control" : "show-control"
                         }`}
                         aria-label="Volume control"
                       />
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="child-controls right-controls">
                     {!controlsToExclude.includes("playbackRate") && (
                       <div
-                        className={`relative ${
-                          containerWidth < 180 ? "hidden" : "inline-flex"
+                        className={`control-relative ${
+                          containerWidth < 180
+                            ? "hide-control"
+                            : "show-control-inline-flex"
                         }`}
                       >
                         <Select
@@ -1047,8 +1059,8 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                       <button
                         onClick={togglePictureInPicture}
                         disabled={videoError}
-                        className={`text-lg text-white p-1 rounded accent-color-hover ${
-                          containerWidth < 220 ? "hidden" : ""
+                        className={`buttons accent-color-hover ${
+                          containerWidth < 222 ? "hide-control" : ""
                         }`}
                         aria-label="Picture-in-picture"
                       >
@@ -1075,7 +1087,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                       <button
                         onClick={toggleFullscreen}
                         disabled={videoError}
-                        className="text-lg text-white p-1 rounded accent-color-hover"
+                        className="buttons accent-color-hover"
                         aria-label={
                           isFullscreen ? "Exit fullscreen" : "Fullscreen"
                         }
@@ -1122,11 +1134,11 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                 </div>
               </div>
               {showDownloadButton && (
-                <div className="absolute top-2 left-2">
+                <div className="download-button-wrapper">
                   {src ? (
                     <button
                       onClick={handleDownloadClick}
-                      className="p-0.5 rounded accent-color hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-gray-100"
+                      className="download-button accent-color"
                       aria-label="Download video"
                     >
                       {!isDownloading ? (
@@ -1156,7 +1168,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          className="animate-spin"
+                          className="downloading"
                         >
                           <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
                           <path d="M21 3v5h-5" />
@@ -1179,7 +1191,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                           })) || []
                         }
                         ariaLabel="Download video"
-                        buttonClassName="p-0.5 rounded accent-color hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-gray-100"
+                        buttonClassName="download-button accent-color"
                         buttonLabel={
                           !isDownloading ? (
                             <svg
@@ -1208,7 +1220,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                               strokeWidth="2"
                               strokeLinecap="round"
                               strokeLinejoin="round"
-                              className="animate-spin"
+                              className="downloading"
                             >
                               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
                               <path d="M21 3v5h-5" />
@@ -1225,11 +1237,11 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
             </div>
           ) : (
             showDownloadButton && (
-              <div className="absolute bottom-2 right-2">
+              <div className="download-button-wrapper-bottom">
                 {src ? (
                   <button
                     onClick={handleDownloadClick}
-                    className="p-0.5 rounded accent-color hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-gray-100"
+                    className="download-button accent-color"
                     aria-label="Download video"
                   >
                     {!isDownloading ? (
@@ -1259,7 +1271,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="animate-spin"
+                        className="downloading"
                       >
                         <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
                         <path d="M21 3v5h-5" />
@@ -1282,7 +1294,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                         })) || []
                       }
                       ariaLabel="Download video"
-                      buttonClassName="p-0.5 rounded accent-color hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-gray-100"
+                      buttonClassName="download-button accent-color"
                       buttonLabel={
                         !isDownloading ? (
                           <svg
@@ -1311,7 +1323,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="animate-spin"
+                            className="downloading"
                           >
                             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
                             <path d="M21 3v5h-5" />

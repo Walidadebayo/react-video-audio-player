@@ -3,11 +3,11 @@
 @tailwind utilities;
 
 .accent-color {
-  background-color: var(--accent-color);
+  background-color: var(--accent-color) !important;
 }
 
 .accent-color-hover:hover {
-  background-color: var(--accent-color);
+  background-color: var(--accent-color) !important;
 }
 
 .accent-color-input {
@@ -55,4 +55,201 @@
 
 .accent-color-input::-moz-range-thumb:hover {
   transform: scale(1.1) !important;
+}
+
+.video-player-wrapper .show-tooltip {
+  @apply absolute top-0 left-1/2 transform -translate-x-1/2 mt-2 px-2 py-1 bg-black text-white text-xs rounded;
+}
+
+.video-player-wrapper .error-overlay {
+  @apply absolute inset-0 flex items-center justify-center bg-black/50 overflow-hidden;
+}
+
+.video-player-wrapper .error-message {
+  @apply text-red-500 flex flex-col gap-4 justify-center items-center;
+}
+
+.video-player-wrapper .error-message .button {
+  @apply text-white bg-red-500 px-4 py-2 rounded-md hover:bg-red-600;
+}
+¬
+.video-player-wrapper .error-message span {
+  @apply text-xs text-center;
+}
+
+
+.video-player-wrapper .controls {
+  @apply absolute inset-0 flex items-center justify-center transition-opacity duration-300;
+}
+
+.video-player-wrapper .show-controls {
+  @apply opacity-100;
+}
+
+.video-player-wrapper .hide-controls {
+  @apply opacity-0;
+}
+
+
+.video-player-wrapper .center-playPause-button {
+  @apply hover:!bg-black/90 w-16 h-16 text-white grid place-items-center rounded-full outline-none transition-colors;
+}
+
+.video-player-wrapper .mobile-controls-wrapper {
+  @apply flex items-center justify-center gap-2;
+}
+
+.video-player-wrapper .mobile-controls-wrapper .skip-forward-backward {
+  @apply text-white p-1 rounded-lg bg-black/90 transition-colors;
+}
+
+.video-player-wrapper .mobile-controls-wrapper .playPause {
+  @apply text-white p-1 rounded-lg transition-colors;
+}
+
+.video-player-wrapper .mobile-controls-wrapper:hover .skip-forward-backward {
+  background-color: var(--accent-color) !important;
+}
+
+.video-player-wrapper .mobile-controls-wrapper:hover .playPause {
+  @apply !bg-black/90;
+}
+
+.video-player-wrapper .mobile-controls-wrapper {
+  @apply flex items-center justify-center gap-2;
+}
+
+.video-player-wrapper .mobile-controls-wrapper .skip-forward-backward {
+  @apply text-white p-1 rounded-lg bg-black/90;
+}
+
+.video-player-wrapper .mobile-controls-wrapper .playPause {
+  @apply text-white p-1 rounded-lg;
+}
+
+.video-player-wrapper .controls .all-controls {
+  @apply w-full bottom-0 absolute px-2 py-1 bg-black/70;
+}
+
+.video-player-wrapper .w-100 {
+  @apply w-full;
+}
+
+.video-player-wrapper .all-controls-bottom {
+  @apply flex items-center justify-between;
+}
+
+.video-player-wrapper .all-controls-bottom .child-controls {
+  @apply flex items-center gap-2;
+}
+
+.video-player-wrapper .all-controls-bottom .buttons {
+  @apply text-lg text-white p-1 rounded;
+}
+
+.video-player-wrapper .all-controls-bottom .current-time-duration {
+  @apply text-white text-xs inline-flex gap-1;
+}
+
+.video-player-wrapper .download-button-wrapper {
+  @apply absolute top-2 right-2;
+}
+
+
+.audio-player-wrapper {
+  @apply relative  border-2 border-gray-400 rounded-xl p-4 bg-slate-100 dark:bg-gray-800 dark:border-gray-600;
+}
+
+.audio-player-wrapper .controls {
+  @apply flex items-center gap-1;
+}
+
+.audio-player-wrapper .play-pause-button {
+  @apply flex items-center justify-center dark:text-gray-100 text-gray-700 p-1 hover:text-gray-300 rounded;
+}
+
+.audio-player-wrapper .current-time-duration {
+  @apply text-gray-700 dark:text-gray-100 inline-flex gap-1;
+}
+
+.audio-player-wrapper .mute-button {
+  @apply dark:text-gray-100 text-gray-700 hover:text-gray-300 p-1 rounded;
+}
+
+
+.audio-player-wrapper .download-button-wrapper {
+  @apply absolute right-2 bottom-0.5;
+}
+
+.audio-player-wrapper .download-button-wrapper-bottom {
+  @apply absolute bottom-2 right-2;
+}
+
+.download-button {
+  @apply p-0.5 rounded hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-gray-100;
+}
+
+.audio-player-wrapper .error-message {
+  @apply text-red-500;
+}
+
+.volume-slider {
+  @apply sm:w-20 w-14;
+}
+.hide-control {
+  @apply hidden;
+}
+
+.show-control {
+  @apply block;
+}
+
+.show-control-inline-flex {
+  @apply inline-flex;
+}
+
+.show-control-inline-block {
+  @apply inline-block;
+}
+
+.control-relative {
+  @apply relative;
+}
+
+.downloading {
+  @apply animate-spin;
+}
+
+/* dropdown */
+
+.dropdown {
+  @apply relative inline-block;
+}
+
+.dropdown .dropdown-button {
+  @apply items-center justify-between whitespace-nowrap rounded-md border bg-transparent text-base focus:outline-none [&>span]:line-clamp-1 w-min border-none  focus:ring-0 p-1 h-full text-gray-700 dark:text-gray-100;
+}
+
+.dropdown .dropdown-content {
+  @apply absolute top-9 left-1/2 transform -translate-x-1/2 hidden z-50;
+}
+
+.dropdown .dropdown-content.show {
+  @apply !block;
+}
+
+.dropdown .dropdown-content .dropdown-items {
+  @apply relative z-50 p-1 max-h-96 min-w-[8rem] overflow-hidden space-y-1 rounded-md border bg-slate-50 dark:bg-gray-900 shadow-md;
+}
+
+.dropdown .dropdown-content .dropdown-items .dropdown-item {
+  @apply relative flex w-full hover:bg-gray-200 dark:hover:bg-gray-500 cursor-pointer select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none;
+}
+
+.dropdown .dropdown-content .dropdown-items .dropdown-item .dropdown-item-icon-check {
+  @apply absolute right-2 flex h-3.5 w-3.5 items-center justify-center;
+}
+
+.dropdown .dropdown-content .dropdown-items .dropdown-item.selected {
+  @apply bg-gray-200 dark:bg-gray-500;
 }

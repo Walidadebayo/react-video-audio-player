@@ -50,15 +50,15 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <nav className="mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
               <Image
                 src="/images/logo.png"
                 alt="React Video Audio Player"
-                width={0}
-                height={0}
+                width={40}
+                height={40}
                 className="w-10 h-10"
               />
               <span className="text-xl font-bold hidden xs:block">
@@ -79,7 +79,7 @@ const Header = () => {
               </Link>
             ))}
           </div>
-          <div className="justify-end hidden md:flex md:items-center md:space-x-6">
+          <div className="justify-end hidden md:flex md:items-center md:gap-6">
             <Link
               href="https://npmjs.com/package/react-video-audio-player"
               target="_blank"
@@ -109,30 +109,30 @@ const Header = () => {
 
           {/* Mobile Navigation */}
           <div className="flex md:hidden">
-            <Link
-              href="https://npmjs.com/package/react-video-audio-player"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center space-x-1"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                width={20}
-                height={20}
+            <span className="inline-flex items-center gap-2">
+              <Link
+                href="https://npmjs.com/package/react-video-audio-player"
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                <path d="M20.001 3C20.5533 3 21.001 3.44772 21.001 4V20C21.001 20.5523 20.5533 21 20.001 21H4.00098C3.44869 21 3.00098 20.5523 3.00098 20V4C3.00098 3.44772 3.44869 3 4.00098 3H20.001ZM19.001 5H5.00098V19H19.001V5ZM17.001 7V17H14.501V9.5H12.001V17H7.00098V7H17.001Z"></path>
-              </svg>
-            </Link>
-            <Link
-              href="https://github.com/Walidadebayo/react-video-audio-player"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center space-x-1"
-            >
-              <Github className="h-5 w-5" />
-            </Link>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  width={20}
+                  height={20}
+                >
+                  <path d="M20.001 3C20.5533 3 21.001 3.44772 21.001 4V20C21.001 20.5523 20.5533 21 20.001 21H4.00098C3.44869 21 3.00098 20.5523 3.00098 20V4C3.00098 3.44772 3.44869 3 4.00098 3H20.001ZM19.001 5H5.00098V19H19.001V5ZM17.001 7V17H14.501V9.5H12.001V17H7.00098V7H17.001Z"></path>
+                </svg>
+              </Link>
+              <Link
+                href="https://github.com/Walidadebayo/react-video-audio-player"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Github className="h-5 w-5" />
+              </Link>
+            </span>
             <ThemeToggle />
             <Button
               variant="ghost"

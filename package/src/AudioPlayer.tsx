@@ -362,7 +362,7 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
 
   return (
     <div
-      className={`relative ${className} border-2 border-gray-400 rounded-xl p-4 bg-slate-100 dark:bg-gray-800 dark:border-gray-600`}
+      className={`audio-player-wrapper  ${className}`}
       ref={audioContainerRef}
       style={
         {
@@ -378,13 +378,13 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
           <strong>Error:</strong> {customErrorMessage}
         </div>
       ) : (
-        <div className="flex items-center gap-1">
+        <div className="controls">
           {controls && (
             <>
               {!controlsToExclude.includes("playPause") && (
                 <button
                   onClick={togglePlay}
-                  className="flex items-center justify-center dark:text-gray-100 text-gray-700 p-1 hover:text-gray-300 rounded accent-color-hover"
+                  className="accent-color-hover play-pause-button"
                   aria-label={isPlaying ? "Pause" : "Play"}
                 >
                   {!isPlaying ? (
@@ -419,23 +419,38 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
                   )}
                 </button>
               )}
-              <div className="whitespace-nowrap flex items-center gap-1 dark:text-white">
+              <div className="current-time-duration">
                 {!controlsToExclude.includes("current-time") && (
                   <span
-                    className={`${containerWidth < 140 ? "hidden" : "block"}`}
+                    className={`${
+                      containerWidth < 140
+                        ? "hide-control"
+                        : "show-control-inline-flex"
+                    }`}
                   >
-                    {formatTime(currentTime)}
+                    {formatTime(currentTime)} {}
                   </span>
                 )}
+                {!controlsToExclude.includes("duration") &&
+                  !controlsToExclude.includes("current-time") && (
+                    <span
+                      className={`${
+                        containerWidth < 400
+                          ? "hide-control"
+                          : "show-control-inline-flex"
+                      }`}
+                    >
+                      /
+                    </span>
+                  )}
                 {!controlsToExclude.includes("duration") && (
                   <span
                     className={`${
-                      containerWidth < 400 ? "hidden" : "inline-flex"
+                      containerWidth < 400
+                        ? "hide-control"
+                        : "show-control-inline-flex"
                     }`}
                   >
-                    {!controlsToExclude.includes("current-time") && (
-                      <span> / </span>
-                    )}
                     {formatTime(duration)}
                   </span>
                 )}
@@ -454,8 +469,10 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
             <>
               {!controlsToExclude.includes("playbackRate") && (
                 <div
-                  className={`relative ${
-                    containerWidth < 210 ? "hidden" : "inline-flex"
+                  className={`control-relative ${
+                    containerWidth < 210
+                      ? "hide-control"
+                      : "show-control-inline-flex"
                   }`}
                 >
                   <Select
@@ -479,8 +496,8 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
               {!controlsToExclude.includes("mute") && (
                 <button
                   onClick={toggleMute}
-                  className={`dark:text-gray-100 text-gray-700 hover:text-gray-300 p-1 rounded accent-color-hover ${
-                    containerWidth < 170 ? "hidden" : "block"
+                  className={`mute-button accent-color-hover ${
+                    containerWidth < 170 ? "hide-control" : "show-control"
                   }`}
                   aria-label={isMuted ? "Unmute" : "Mute"}
                 >
@@ -531,17 +548,17 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
                     updateRangeBackground(e);
                   }}
                   ref={volumeInputRef}
-                  className={`sm:w-20 w-14 accent-color-input ${
-                    containerWidth < 400 ? "hidden" : "block"
+                  className={`volume-slider accent-color-input ${
+                    containerWidth < 400 ? "hide-control" : "show-control"
                   }`}
                   aria-label="Volume control"
                 />
               )}
               {showDownloadButton && (
-                <div className="absolute right-2 bottom-0.5">
+                <div className="download-button-wrapper">
                   <button
                     onClick={handleDownloadClick}
-                    className="p-0.5 rounded accent-color hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-gray-100"
+                    className="download-button accent-color"
                     aria-label="Download video"
                   >
                     {!isDownloading ? (
@@ -571,7 +588,7 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="animate-spin"
+                        className="downloading"
                       >
                         <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
                         <path d="M21 3v5h-5" />
@@ -585,11 +602,11 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
             </>
           )}
           {!controls && showDownloadButton && (
-            <div className="absolute right-2 bottom-0.5">
+            <div className="download-button-wrapper">
               <button
                 disabled={isDownloading}
                 onClick={handleDownloadClick}
-                className="p-0.5 rounded accent-color hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-gray-100"
+                className="download-button accent-color"
                 aria-label="Download video"
               >
                 {!isDownloading ? (
@@ -619,7 +636,7 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="animate-spin"
+                    className="downloading"
                   >
                     <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
                     <path d="M21 3v5h-5" />

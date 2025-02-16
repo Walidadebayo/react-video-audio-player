@@ -37,7 +37,7 @@ export default function Home() {
                 for conversion.
               </p>
             </div>
-            <div className="space-x-4">
+            <div className="gap-4 flex max-xs:flex-col items-center flex-row">
               <Button asChild>
                 <Link href="/docs">Get Started</Link>
               </Button>

@@ -15,13 +15,13 @@ const Dropdown: FC<DropdownProps> = ({ items, ariaLabel, buttonLabel, buttonClas
 
   const activateDropdown = () => {
     if (dropdownRef.current) {
-      dropdownRef.current.classList.toggle("hidden");
+      dropdownRef.current.classList.toggle("show");
     }
   };
 
   const hideDropdown = () => {
     if (dropdownRef.current) {
-      dropdownRef.current.classList.add("hidden");
+      dropdownRef.current.classList.remove("show");
     }
   };
 
@@ -42,29 +42,24 @@ const Dropdown: FC<DropdownProps> = ({ items, ariaLabel, buttonLabel, buttonClas
   }, [handleClickOutside]);
 
   return (
-    <div className="relative inline-block" ref={dropdownContainerRef}>
+    <div className="dropdown" ref={dropdownContainerRef}>
       <button
         onClick={activateDropdown}
-        className={`
-          items-center justify-between whitespace-nowrap rounded-md border border-input  bg-transparent text-md focus:outline-none  
-          [&>span]:line-clamp-1 w-min border-none  focus:ring-0 p-1 h-full text-gray-700 dark:text-gray-100 ${buttonClassName}
-          `}
+        className={`dropdown-button ${buttonClassName}`}
         aria-label={ariaLabel}
       >
         <span>{buttonLabel}</span>
       </button>
       <div
         ref={dropdownRef}
-        className="absolute top-9 left-1/2 transform -translate-x-1/2 hidden"
+        className="dropdown-content"
         tabIndex={-1}
       >
-        <div className="relative z-50 p-1 max-h-96 min-w-[8rem] overflow-hidden space-y-1 rounded-md border bg-slate-50 dark:bg-gray-900 shadow-md">
+        <div className="dropdown-items">
           {items.map(({ label, onClick }, i) => (
             <div
               key={i}
-              className={`relative flex w-full hover:bg-gray-200 
-                dark:hover:bg-gray-500 cursor-pointer select-none items-center 
-                rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none`}
+              className={``}
               onClick={() => {
                 if (onClick) {
                   onClick();
