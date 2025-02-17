@@ -75,7 +75,7 @@ const Select: FC<SelectProps> = ({
       >
         <span>{label || "Select an option"}</span>
       </button>
-      <div ref={selectRef} className="dropdown-content" tabIndex={-1}>
+      <div ref={selectRef} className="select-content" tabIndex={-1}>
         <div className="dropdown-items">
           {items.map(({ label, value }) => (
             <div
@@ -89,7 +89,7 @@ const Select: FC<SelectProps> = ({
             >
               {label}
               {selectedValue === value && (
-                <span className="dropdown-item-icon-check ">
+                <span className="select-item-icon-check ">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"

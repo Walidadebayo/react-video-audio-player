@@ -7,9 +7,10 @@ interface DropdownProps {
   ariaLabel?: string;
   buttonLabel?: string | JSX.Element;
   buttonClassName?: string;
+  disabled?: boolean;
 }
 
-const Dropdown: FC<DropdownProps> = ({ items, ariaLabel, buttonLabel, buttonClassName }) => {
+const Dropdown: FC<DropdownProps> = ({ items, ariaLabel, buttonLabel, buttonClassName, disabled }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +48,7 @@ const Dropdown: FC<DropdownProps> = ({ items, ariaLabel, buttonLabel, buttonClas
         onClick={activateDropdown}
         className={`dropdown-button ${buttonClassName}`}
         aria-label={ariaLabel}
+        disabled={disabled}
       >
         <span>{buttonLabel}</span>
       </button>
@@ -59,7 +61,7 @@ const Dropdown: FC<DropdownProps> = ({ items, ariaLabel, buttonLabel, buttonClas
           {items.map(({ label, onClick }, i) => (
             <div
               key={i}
-              className={``}
+              className="dropdown-item"
               onClick={() => {
                 if (onClick) {
                   onClick();

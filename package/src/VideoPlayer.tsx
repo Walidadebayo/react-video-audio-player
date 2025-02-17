@@ -1135,11 +1135,12 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
               </div>
               {showDownloadButton && (
                 <div className="download-button-wrapper">
-                  {src ? (
+                  {src && !sources ? (
                     <button
                       onClick={handleDownloadClick}
                       className="download-button accent-color"
                       aria-label="Download video"
+                      disabled={isDownloading}
                     >
                       {!isDownloading ? (
                         <svg
@@ -1181,7 +1182,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                     sources && (
                       <Dropdown
                         items={
-                          sources.map(({ src, type }) => ({
+                          sources?.map(({ src, type }) => ({
                             label: type.split("/")[1].toUpperCase(),
                             onClick: () =>
                               handleSourceDownloadClick(
@@ -1192,6 +1193,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                         }
                         ariaLabel="Download video"
                         buttonClassName="download-button accent-color"
+                        disabled={isDownloading}
                         buttonLabel={
                           !isDownloading ? (
                             <svg
@@ -1238,11 +1240,12 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
           ) : (
             showDownloadButton && (
               <div className="download-button-wrapper-bottom">
-                {src ? (
+                {src && !sources ? (
                   <button
                     onClick={handleDownloadClick}
                     className="download-button accent-color"
                     aria-label="Download video"
+                    disabled={isDownloading}
                   >
                     {!isDownloading ? (
                       <svg
@@ -1295,6 +1298,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                       }
                       ariaLabel="Download video"
                       buttonClassName="download-button accent-color"
+                      disabled={isDownloading}
                       buttonLabel={
                         !isDownloading ? (
                           <svg
