@@ -128,12 +128,20 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
   const controlTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [videoError, setVideoError] = useState(false);
   const [duration, setDuration] = useState(0);
-  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const [ios, setIos] = useState(false);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const timelineInputRef = useRef<HTMLInputElement>(null);
   const volumeInputRef = useRef<HTMLInputElement>(null);
   const [showTooltip, setShowTooltip] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && typeof navigator !== "undefined") {
+      if (navigator.userAgent.match(/(iPod|iPhone|iPad)/)) {
+        setIos(true);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (seekTo && videoRef.current) {
@@ -939,7 +947,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                       )}
                     </span>
                     <div className="current-time-duration">
-                    {!controlsToExclude.includes("current-time") && (
+                      {!controlsToExclude.includes("current-time") && (
                         <span className="show-control-inline-flex">
                           {formatTime(currentTime)}
                         </span>
@@ -948,7 +956,9 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                         !controlsToExclude.includes("current-time") && (
                           <span
                             className={`${
-                              containerWidth < 160 ? "hide-control" : "show-control-inline-flex"
+                              containerWidth < 160
+                                ? "hide-control"
+                                : "show-control-inline-flex"
                             }`}
                           >
                             /
@@ -957,7 +967,9 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                       {!controlsToExclude.includes("duration") && (
                         <span
                           className={`${
-                            containerWidth < 160 ? "hide-control" : "show-control-inline-flex"
+                            containerWidth < 160
+                              ? "hide-control"
+                              : "show-control-inline-flex"
                           }`}
                         >
                           {formatTime(duration)}
