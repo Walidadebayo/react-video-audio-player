@@ -338,6 +338,12 @@ export const audioProps = [
     description: "A Boolean attribute; if specified, the audio player will automatically seek back to the start upon reaching the end of the audio.",
   },
   {
+    prop: "defaultPlaybackRate",
+    type: "number",
+    default: "undefined",
+    description: "A number indicating the default playback speed of the audio when loaded. The default value is 1.0, which indicates normal speed. The value must be between 0.0625 and 16.0.",
+  },
+  {
     prop: "seekTo",
     type: "number",
     default: "0",
@@ -347,7 +353,7 @@ export const audioProps = [
     prop: "controlsToExclude",
     type: "Array<typeof VideoControlOptionsToRemove>",
     default: "[]",
-    description: `An array of controls to remove from the video player. The following controls can be removed:
+    description: `An array of controls to remove from the audio player. The following controls can be removed:
         <br />
         - <b>playPause</b>: Center play/pause button
         <br />
