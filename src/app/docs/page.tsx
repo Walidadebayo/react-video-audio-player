@@ -273,7 +273,7 @@ const longTime = formatTime(3661); // "1:01:01"`}
 <div id="audio-player"></div>
 
 <script src="https://unpkg.com/react-video-audio-player@latest/dist/index.standalone.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/react-video-audio-player@1.0.11/dist/video-audio-player.css">
+<link rel="stylesheet" href="https://unpkg.com/react-video-audio-player@latest/dist/video-audio-player.css">
 
 <script>
 // Initialize the VideoPlayer
@@ -319,7 +319,7 @@ audioPlayerContainer.appendChild(audioPlayer);
 <script src="https://unpkg.com/react-video-audio-player@latest/dist/index.umd.js"></script>
 <link
   rel="stylesheet"
-  href="https://unpkg.com/react-video-audio-player@1.0.11/dist/video-audio-player.css"
+  href="https://unpkg.com/react-video-audio-player@latest/dist/video-audio-player.css"
 />
 
 <!-- React -->

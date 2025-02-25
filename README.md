@@ -87,14 +87,14 @@ You can also include the package directly via CDN:
 <script src="https://unpkg.com/react-video-audio-player@latest/dist/index.umd.js"></script>
 <link
   rel="stylesheet"
-  href="https://unpkg.com/react-video-audio-player@1.0.11/dist/video-audio-player.css"
+  href="https://unpkg.com/react-video-audio-player@latest/dist/video-audio-player.css"
 />
 
 <!-- Standalone version (no React required) -->
 <script src="https://unpkg.com/react-video-audio-player@latest/dist/index.standalone.js"></script>
 <link
   rel="stylesheet"
-  href="https://unpkg.com/react-video-audio-player@1.0.11/dist/video-audio-player.css"
+  href="https://unpkg.com/react-video-audio-player@latest/dist/video-audio-player.css"
 />
 ```
 
@@ -119,7 +119,7 @@ import { VideoPlayer, AudioPlayer } from "react-video-audio-player";
 <script src="https://unpkg.com/react-video-audio-player@latest/dist/index.umd.js"></script>
 <link
   rel="stylesheet"
-  href="https://unpkg.com/react-video-audio-player@1.0.11/dist/video-audio-player.css"
+  href="https://unpkg.com/react-video-audio-player@latest/dist/video-audio-player.css"
 />
 
 <!-- React -->
@@ -173,7 +173,7 @@ import { VideoPlayer, AudioPlayer } from "react-video-audio-player";
 <script src="https://unpkg.com/react-video-audio-player@latest/dist/index.standalone.js"></script>
 <link
   rel="stylesheet"
-  href="https://unpkg.com/react-video-audio-player@1.0.11/dist/video-audio-player.css"
+  href="https://unpkg.com/react-video-audio-player@latest/dist/video-audio-player.css"
 />
 
 <script>
