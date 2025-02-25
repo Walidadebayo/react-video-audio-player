@@ -11,7 +11,7 @@ import { formatTime } from "./utils";
 import Select from "./components/Select";
 import Dropdown from "./components/Dropdown";
 import "./video-audio-player.css";
-import { updateRangeBackground } from "./YouTubePlayer";
+import { updateRangeBackground } from "./utils";
 
 export type preload = "auto" | "metadata" | "none" | "";
 export type VideoControlOptionsToRemove =
@@ -171,7 +171,7 @@ const VideoPlayer = ({
       }
     }
   }, []);
-  
+
   useEffect(() => {
     if (videoRef.current) {
       setIsMuted(muted);
