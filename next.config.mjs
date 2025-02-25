@@ -20,6 +20,7 @@ const nextConfig = {
       '@/types': `${path.resolve(__dirname, './src/types')}`,
       '@/hooks': `${path.resolve(__dirname, './src/hooks')}`,
       '@/lib': `${path.resolve(__dirname, './src/lib')}`,
+      '@/package': `${path.resolve(__dirname, './package/')}`,
     };
 
     return config;

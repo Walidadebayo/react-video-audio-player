@@ -33,13 +33,7 @@ const ThemeToggle = () => {
 };
 
 const Header = () => {
-  const [mounted, setMounted] = useState(false);
-  const { theme, setTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const navigation = [
     { name: "Home", href: "/" },
@@ -162,14 +156,14 @@ const Header = () => {
                   {item.name}
                 </Link>
               ))}
-              <a
+              <Link
                 href="https://github.com/Walidadebayo/react-video-audio-player"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
               >
                 GitHub
-              </a>
+              </Link>
             </div>
           </div>
         )}

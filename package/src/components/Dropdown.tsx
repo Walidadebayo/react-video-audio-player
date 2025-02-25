@@ -1,23 +1,26 @@
 "use client";
 
-import React, { useRef, useCallback, useEffect, FC, JSX } from "react";
+import React, { useRef, useCallback, useEffect, FC, JSX, useState } from "react";
 
 interface DropdownProps {
-  items: { label: string; onClick?: () => void }[];
+  items: { label: string | JSX.Element, onClick?: () => void }[];
   ariaLabel?: string;
   buttonLabel?: string | JSX.Element;
   buttonClassName?: string;
-  disabled?: boolean;
+  disabled?: boolean; 
+  tickSelected?: boolean; 
+  defaultSelectedLabel?: string;
 }
 
-const Dropdown: FC<DropdownProps> = ({ items, ariaLabel, buttonLabel, buttonClassName, disabled }) => {
+const Dropdown: FC<DropdownProps> = ({ items, ariaLabel, buttonLabel, buttonClassName, disabled, tickSelected, defaultSelectedLabel }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
 
   const activateDropdown = () => {
     if (dropdownRef.current) {
       dropdownRef.current.classList.toggle("show");
-    }
+    } 
   };
 
   const hideDropdown = () => {
@@ -66,11 +69,29 @@ const Dropdown: FC<DropdownProps> = ({ items, ariaLabel, buttonLabel, buttonClas
                 if (onClick) {
                   onClick();
                   hideDropdown();
+                  setSelectedIndex(i);
                 }
               }}
-              aria-label={label}
+              aria-label={typeof label === "string" ? label : undefined}
+              role="menuitem"
             >
               {label}
+              {tickSelected && (selectedIndex === i || typeof label === "string" && defaultSelectedLabel === label) &&  
+                <span className="select-item-icon-check">
+                     <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </span>}
             </div>
           ))}
         </div>

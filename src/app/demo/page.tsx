@@ -1,16 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import {
   VideoPlayer,
+  AudioPlayer,
   VideoControlOptionsToRemove,
   VideoPlayerProps,
-} from "react-video-audio-player";
-import {
-  AudioPlayer,
   AudioControlOptionsToRemove,
   AudioPlayerProps,
-} from "react-video-audio-player";
+} from "@/package/src";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +45,7 @@ export default function DemoPage() {
     "volume",
     "playbackRate",
     "skip-forward-backward",
+    "captions",
   ];
 
   const audioControlsList: AudioControlOptionsToRemove[] = [
@@ -71,6 +71,36 @@ export default function DemoPage() {
     doubleClickToFullscreen: false,
     showDownloadButton: false,
     disableShortcuts: false,
+    tracks: [
+      {
+        src: "https://durian.blender.org/wp-content/content/subtitles/sintel_en.srt",
+        kind: "subtitles",
+        label: "English",
+        srclang: "en",
+        default: true,
+      },
+      {
+        src: "https://durian.blender.org/wp-content/content/subtitles/sintel_es.srt",
+        kind: "subtitles",
+        label: "Spanish",
+        srclang: "es",
+        default: false,
+      },
+      {
+        src: "https://durian.blender.org/wp-content/content/subtitles/sintel_de.srt",
+        kind: "subtitles",
+        label: "German",
+        srclang: "de",
+        default: false,
+      },
+      {
+        src: "https://durian.blender.org/wp-content/content/subtitles/sintel_fr.srt",
+        kind: "subtitles",
+        label: "French",
+        srclang: "fr",
+        default: false,
+      },
+    ],
   });
 
   useEffect(() => {
@@ -81,7 +111,7 @@ export default function DemoPage() {
   }, [videoControlsToExclude]);
 
   const [audioConfig, setAudioConfig] = useState<AudioPlayerProps>({
-    src: "https://cdn.pixabay.com/audio/2024/03/21/audio_b20bc53f05.mp3",
+    src: "https://cdn.pixabay.com/audio/2024/11/11/audio_889cf15c3c.mp3",
     controls: true,
     autoPlay: false,
     loop: false,
@@ -313,7 +343,11 @@ export default function DemoPage() {
           <h2 className="text-3xl font-bold mb-6">Audio Player</h2>
           <div className="grid gap-8 lg:grid-cols-2">
             <div>
-              <AudioPlayer {...audioConfig} width="100%" />
+              <AudioPlayer
+                {...audioConfig}
+                width="100%"
+                onVolumeChange={(time) => console.log(time)}
+              />
             </div>
             <div className="space-y-6">
               <div>

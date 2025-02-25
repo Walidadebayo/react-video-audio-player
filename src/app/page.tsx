@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { VideoPlayer } from "react-video-audio-player";
-import { AudioPlayer } from "react-video-audio-player";
+import { VideoPlayer, AudioPlayer } from "@/package/src";
 import Clipboard from "@/components/ui/clipboard";
 
 export default function Home() {
@@ -42,13 +41,16 @@ export default function Home() {
                 <Link href="/docs">Get Started</Link>
               </Button>
               <Button variant="outline" asChild>
-                <a
+                <Link
                   href="https://github.com/Walidadebayo/react-video-audio-player"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   View on GitHub
-                </a>
+                </Link>
+              </Button>
+              <Button variant="secondary" asChild>
+                <Link href="/installation#cdn">Use CDN</Link>
               </Button>
             </div>
             <Clipboard />
@@ -67,16 +69,47 @@ export default function Home() {
               <h3 className="text-2xl font-bold">Video Player</h3>
               <div className="justify-center flex">
                 <VideoPlayer
+                  seekTo={10}
                   src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
                   className="rounded-lg sm:!w-[800px] w-auto"
                   preload="auto"
                   poster="https://i.ibb.co/W45zMcvj/Sintel-krafy-resized-Viz-Xpress.jpg"
+                  tracks={[
+                    {
+                      src: "https://durian.blender.org/wp-content/content/subtitles/sintel_en.srt",
+                      kind: "subtitles",
+                      label: "English",
+                      srclang: "en",
+                      default: true,
+                    },
+                    {
+                      src: "https://durian.blender.org/wp-content/content/subtitles/sintel_es.srt",
+                      kind: "subtitles",
+                      label: "Spanish",
+                      srclang: "es",
+                      default: false,
+                    },
+                    {
+                      src: "https://durian.blender.org/wp-content/content/subtitles/sintel_de.srt",
+                      kind: "subtitles",
+                      label: "German",
+                      srclang: "de",
+                      default: false,
+                    },
+                    {
+                      src: "https://durian.blender.org/wp-content/content/subtitles/sintel_fr.srt",
+                      kind: "subtitles",
+                      label: "French",
+                      srclang: "fr",
+                      default: false,
+                    },
+                  ]}
                 />
               </div>
             </div>
             <div className="space-y-4">
               <h3 className="text-2xl font-bold">Audio Player</h3>
-              <AudioPlayer src="https://cdn.pixabay.com/audio/2024/03/21/audio_b20bc53f05.mp3" />
+              <AudioPlayer src="https://cdn.pixabay.com/audio/2024/11/11/audio_889cf15c3c.mp3" />
             </div>
           </div>
         </div>
@@ -100,7 +133,7 @@ export default function Home() {
               <h3 className="text-xl font-bold">Multiple Formats</h3>
               <p className="text-center text-muted-foreground">
                 Support for various audio and video formats including MP4, WebM,
-                MP3, WAV and more.
+                OGV, OGG MP3, WAV and more.
               </p>
             </div>
             <div className="flex flex-col items-center space-y-2 p-6 bg-background rounded-lg shadow-sm">
@@ -108,6 +141,26 @@ export default function Home() {
               <p className="text-center text-muted-foreground">
                 Built-in keyboard shortcuts for better accessibility and user
                 experience.
+              </p>
+            </div>
+            <div className="flex flex-col items-center space-y-2 p-6 bg-background rounded-lg shadow-sm">
+              <h3 className="text-xl font-bold">Responsive Design</h3>
+              <p className="text-center text-muted-foreground">
+                Fully responsive player that works seamlessly on all devices.
+              </p>
+            </div>
+            <div className="flex flex-col items-center space-y-2 p-6 bg-background rounded-lg shadow-sm">
+              <h3 className="text-xl font-bold">Download Options</h3>
+              <p className="text-center text-muted-foreground">
+                Allow users to download audio and video files directly from the
+                player.
+              </p>
+            </div>
+            <div className="flex flex-col items-center space-y-2 p-6 bg-background rounded-lg shadow-sm">
+              <h3 className="text-xl font-bold">Subtitle Support</h3>
+              <p className="text-center text-muted-foreground">
+                Supports various subtitle formats such as SRT and VTT, including
+                cross-origin subtitle sources.
               </p>
             </div>
           </div>

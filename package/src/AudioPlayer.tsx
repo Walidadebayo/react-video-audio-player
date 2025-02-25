@@ -6,11 +6,10 @@ import React, {
   useEffect,
   useRef,
   CSSProperties,
-  FC,
 } from "react";
 import WaveSurfer from "wavesurfer.js";
-import { formatTime } from "./lib/utils";
-import { updateRangeBackground, updateRangeBackgroundRef } from "./VideoPlayer";
+import { formatTime } from "./utils";
+import { updateRangeBackground } from "./utils";
 import Select from "./components/Select";
 import "./video-audio-player.css";
 
@@ -39,6 +38,11 @@ export interface AudioPlayerProps {
   showDownloadButton?: boolean;
   onProgress?: (currentTime: number, duration: number) => void;
   onSeeked?: (time: number) => void;
+  onDownloadStart?: () => void;
+  onDownloadEnd?: (success: boolean) => void;
+  onPlaybackRateChange?: (rate: number) => void;
+  onVolumeChange?: (volume: number) => void;
+  onMuteChange?: (isMuted: boolean) => void;
   onPlay?: () => void;
   onPause?: () => void;
   onEnded?: () => void;
@@ -49,7 +53,7 @@ export interface AudioPlayerProps {
   getAudioElement?: (ref: HTMLAudioElement | null) => void;
 }
 
-const AudioPlayer: FC<AudioPlayerProps> = ({
+const AudioPlayer = ({
   src,
   accentColor = "#60a5fa",
   customErrorMessage = "An error occurred while trying to play the audio.",
@@ -66,6 +70,11 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
   disableShortcuts = false,
   onProgress,
   onSeeked,
+  onDownloadStart,
+  onDownloadEnd,
+  onPlaybackRateChange,
+  onVolumeChange,
+  onMuteChange,
   onPlay,
   onPause,
   onEnded,
@@ -74,7 +83,7 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
   onDuration,
   getWaveSurferRef,
   getAudioElement,
-}) => {
+}: AudioPlayerProps) => {
   const waveformRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -88,14 +97,19 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
   const audioContainerRef = useRef<HTMLDivElement>(null);
   const volumeInputRef = useRef<HTMLInputElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [reload, setReload] = useState(false);
 
   useEffect(() => {
-    setIsMuted(muted);
     if (waveSurfer.current) {
-      waveSurfer.current.setMuted(muted);
-      waveSurfer.current.setVolume(muted ? 0 : volume);
+      setIsMuted(muted);
+      setVolume(muted ? 0 : 1);
     }
-  }, [muted]);
+  }, [muted, waveSurfer]);
+
+  useEffect(() => {
+    const volumeInput = volumeInputRef.current;
+    updateRangeBackground(volumeInput);
+  }, [volume]);
 
   useEffect(() => {
     const audioContainer = audioContainerRef.current;
@@ -130,10 +144,10 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
     if (waveSurfer.current) {
       waveSurfer.current.setMuted(!isMuted);
       setIsMuted(!isMuted);
-      waveSurfer.current.setVolume(volume === 0 ? 1 : volume);
-      setVolume(volume === 0 ? 1 : volume);
+      updateRangeBackground(volumeInputRef.current, !isMuted ? 0 : volume, 1);
+      if (onMuteChange) onMuteChange(!isMuted);
     }
-  }, [isMuted, volume]);
+  }, [isMuted, volume, onMuteChange]);
 
   useEffect(() => {
     if (disableShortcuts) return;
@@ -153,14 +167,24 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
           case "ArrowUp":
             e.preventDefault();
             waveSurfer.current.setVolume(Math.min(volume + 0.1, 1));
-            setVolume((prevVolume) => Math.min(prevVolume + 0.1, 1));
-            updateRangeBackgroundRef(volumeInputRef.current);
+            setVolume((prevVolume) => {
+              if (prevVolume === 0) {
+                setIsMuted(false);
+              }
+              return Math.min(prevVolume + 0.1, 1);
+            });
             break;
           case "ArrowDown":
             e.preventDefault();
             waveSurfer.current.setVolume(Math.max(volume - 0.1, 0));
-            setVolume((prevVolume) => Math.max(prevVolume - 0.1, 0));
-            updateRangeBackgroundRef(volumeInputRef.current);
+            setVolume((prevVolume) => {
+              const newVolume = Math.max(prevVolume - 0.1, 0);
+              if (newVolume === 0) {
+                setIsMuted(true);
+              }
+              return newVolume;
+            });
+
             break;
           case " ":
             e.preventDefault();
@@ -168,20 +192,30 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
             break;
           case "m":
             e.preventDefault();
-            waveSurfer.current.setMuted(!isMuted);
-            setIsMuted(!isMuted);
+            toggleMute();
             break;
-          case "s":
-            waveSurfer.current.setPlaybackRate(
+          case "s": {
+            const speedRate =
               playbackRate === 1
+                ? 1.25
+                : playbackRate === 1.25
                 ? 1.5
                 : playbackRate === 1.5
+                ? 1.75
+                : playbackRate === 1.75
                 ? 2
                 : playbackRate === 2
+                ? 0.25
+                : playbackRate === 0.25
                 ? 0.5
-                : 1
-            );
+                : playbackRate === 0.5
+                ? 0.75
+                : 1;
+            setPlaybackRate(speedRate);
+            waveSurfer.current.setPlaybackRate(speedRate);
+            if (onPlaybackRateChange) onPlaybackRateChange(speedRate);
             break;
+          }
           default:
             break;
         }
@@ -192,7 +226,22 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isMuted, volume, playbackRate, disableShortcuts]);
+  }, [
+    isMuted,
+    volume,
+    playbackRate,
+    disableShortcuts,
+    toggleMute,
+    onPlaybackRateChange,
+  ]);
+
+  const reloadAudio = () => {
+    setAudioError(false);
+    setTimeout(() => {
+      setReload(!reload);
+      updateRangeBackground(volumeInputRef.current, volume, 1);
+    }, 100);
+  };
 
   useEffect(() => {
     const handleError = () => {
@@ -201,6 +250,61 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
         onError();
       }
     };
+
+    const handleSeeked = () => {
+      const currentTime = waveSurfer.current?.getCurrentTime() || 0;
+      setCurrentTime(currentTime);
+      if (onSeeked) {
+        onSeeked(currentTime);
+      }
+    };
+
+    const handlePlay = () => {
+      setIsPlaying(true);
+      if (onPlay) {
+        onPlay();
+      }
+    };
+
+    const handlePause = () => {
+      setIsPlaying(false);
+      if (onPause) {
+        onPause();
+      }
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      waveSurfer.current?.stop();
+      if (onEnded) {
+        onEnded();
+      }
+    };
+
+    const handleReady = () => {
+      const duration = waveSurfer.current?.getDuration() || 0;
+      setDuration(duration);
+      if (onReady) {
+        onReady();
+      }
+      if (onDuration) {
+        onDuration(duration);
+      }
+    };
+
+    const handleClick = () => {
+      waveSurfer.current?.playPause();
+    };
+
+    const handleVolumeChange = () => {
+      const newVolume = waveSurfer.current?.getVolume() || 0;
+      setVolume(newVolume);
+      if (onVolumeChange) {
+        onVolumeChange(newVolume);
+      }
+    };
+
     if (waveformRef.current) {
       waveSurfer.current = WaveSurfer.create({
         container: waveformRef.current,
@@ -217,71 +321,39 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
         barGap: 1,
       });
 
-      waveSurfer.current.on("ready", () => {
-        const duration = waveSurfer.current?.getDuration() || 0;
-        setDuration(duration);
-        if (onReady) {
-          onReady();
-        }
-        if (onDuration) {
-          onDuration(duration);
-        }
-      });
+      setCurrentTime(0);
 
-      waveSurfer.current.on("finish", () => {
-        setIsPlaying(false);
-        setCurrentTime(0);
-        waveSurfer.current?.stop();
-        if (onEnded) {
-          onEnded();
-        }
-      });
+      waveSurfer.current.on("ready", handleReady);
+      waveSurfer.current.on("finish", handleEnded);
+      waveSurfer.current.on("play", handlePlay);
+      waveSurfer.current.on("pause", handlePause);
+      waveSurfer.current.on("error", handleError);
+      waveSurfer.current.getMediaElement().loop = loop;
+      waveSurfer.current.on("seeking", handleSeeked);
+      waveSurfer.current.getMediaElement().onvolumechange = handleVolumeChange;
 
       if (!controls) {
-        waveSurfer.current.on("click", () => {
-          waveSurfer.current?.playPause();
-        });
+        waveSurfer.current.on("click", handleClick);
       }
-
-      waveSurfer.current
-        .getMediaElement()
-        .addEventListener("error", handleError);
-
-      waveSurfer.current.on("play", () => {
-        setIsPlaying(true);
-        if (onPlay) {
-          onPlay();
-        }
-      });
 
       if (seekTo) {
         waveSurfer.current.seekTo(seekTo);
       }
-
-      waveSurfer.current.on("pause", () => {
-        setIsPlaying(false);
-        if (onPause) {
-          onPause();
-        }
-      });
-
-      waveSurfer.current.getMediaElement().addEventListener("seeked", () => {
-        const currentTime = waveSurfer.current?.getCurrentTime() || 0;
-        setCurrentTime(currentTime);
-        if (onSeeked) {
-          onSeeked(currentTime);
-        }
-      });
-
-      waveSurfer.current.getMediaElement().loop = loop;
     }
 
     return () => {
       if (waveSurfer.current) {
         waveSurfer.current.destroy();
-        waveSurfer.current
-          .getMediaElement()
-          .removeEventListener("error", handleError);
+        waveSurfer.current.un("ready", handleReady);
+        waveSurfer.current.un("finish", handleEnded);
+        waveSurfer.current.un("play", handlePlay);
+        waveSurfer.current.un("pause", handlePause);
+        waveSurfer.current.un("seeking", handleSeeked);
+        waveSurfer.current.un("error", handleError);
+        if (!controls) {
+          waveSurfer.current.un("click", handleClick);
+        }
+        waveSurfer.current.getMediaElement().onvolumechange = null;
       }
     };
   }, [
@@ -299,24 +371,32 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
     duration,
     controls,
     seekTo,
+    reload,
+    onVolumeChange,
   ]);
 
   const handleSpeedChange = (speed: number) => {
     setPlaybackRate(speed);
     if (waveSurfer.current) {
       waveSurfer.current.setPlaybackRate(speed);
+      if (onPlaybackRateChange) onPlaybackRateChange(speed);
     }
   };
 
   useEffect(() => {
-    if (waveSurfer.current) {
-      waveSurfer.current.on("audioprocess", () => {
+    const wavesurfer = waveSurfer.current;
+    if (wavesurfer) {
+      const handleProgress = () => {
         const currentTime = waveSurfer.current?.getCurrentTime() || 0;
         setCurrentTime(currentTime);
         if (onProgress) {
           onProgress(currentTime, duration);
         }
-      });
+      };
+      wavesurfer.on("audioprocess", handleProgress);
+      return () => {
+        wavesurfer.un("audioprocess", handleProgress);
+      };
     }
   }, [onProgress, duration]);
 
@@ -336,8 +416,10 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
     const newVolume = parseFloat(e.target.value);
     if (newVolume === 0) {
       setIsMuted(true);
+      if (onMuteChange) onMuteChange(true);
     } else {
       setIsMuted(false);
+      if (onMuteChange) onMuteChange(false);
     }
     setVolume(newVolume);
     if (waveSurfer.current) {
@@ -347,17 +429,25 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
 
   const handleDownloadClick = async () => {
     if (isDownloading) return;
-    setIsDownloading(true);
-    const link = document.createElement("a");
-    const response = await fetch(src);
-    const blob = await response.blob();
-    link.href = URL.createObjectURL(blob);
-    link.download =
-      Math.random().toString(36).substring(2, 9) + "." + src.split(".").pop() ||
-      ".mp3";
-    link.click();
-    link.remove();
-    setIsDownloading(false);
+    try {
+      if (onDownloadStart) onDownloadStart();
+      setIsDownloading(true);
+      const link = document.createElement("a");
+      const response = await fetch(src);
+      const blob = await response.blob();
+      link.href = URL.createObjectURL(blob);
+      link.download =
+        Math.random().toString(36).substring(2, 9) +
+          "." +
+          src.split(".").pop() || ".mp3";
+      link.click();
+      link.remove();
+      setIsDownloading(false);
+      if (onDownloadEnd) onDownloadEnd(true);
+    } catch {
+      setIsDownloading(false);
+      if (onDownloadEnd) onDownloadEnd(false);
+    }
   };
 
   return (
@@ -375,7 +465,25 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
     >
       {audioError ? (
         <div className="error-message">
-          <strong>Error:</strong> {customErrorMessage}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+          </svg>
+          <span>
+            <strong>Error:</strong> {customErrorMessage}
+          </span>
+          <button onClick={reloadAudio}>Reload</button>
         </div>
       ) : (
         <div className="controls">
@@ -419,7 +527,7 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
                   )}
                 </button>
               )}
-              <div className="current-time-duration">
+              <button className="current-time-duration accent-color-hover">
                 {!controlsToExclude.includes("current-time") && (
                   <span
                     className={`${
@@ -454,7 +562,7 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
                     {formatTime(duration)}
                   </span>
                 )}
-              </div>
+              </button>
             </>
           )}
 
@@ -490,6 +598,7 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
                     ariaLabel="Playback speed"
                     defaultLabel={`${playbackRate}x`}
                     onClick={(value) => handleSpeedChange(value as number)}
+                    key={playbackRate}
                   />
                 </div>
               )}
@@ -499,7 +608,7 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
                   className={`mute-button accent-color-hover ${
                     containerWidth < 170 ? "hide-control" : "show-control"
                   }`}
-                  aria-label={isMuted ? "Unmute" : "Mute"}
+                  aria-label={isMuted || muted ? "Unmute" : "Mute"}
                 >
                   {isMuted ? (
                     <svg
@@ -543,10 +652,7 @@ const AudioPlayer: FC<AudioPlayerProps> = ({
                   max="1"
                   step="any"
                   value={isMuted ? 0 : volume}
-                  onChange={(e) => {
-                    handleVolumeChange(e);
-                    updateRangeBackground(e);
-                  }}
+                  onChange={(e) => handleVolumeChange(e)}
                   ref={volumeInputRef}
                   className={`volume-slider accent-color-input ${
                     containerWidth < 400 ? "hide-control" : "show-control"

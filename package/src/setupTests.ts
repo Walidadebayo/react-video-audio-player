@@ -8,7 +8,7 @@ class ResizeObserver {
   disconnect() {}
 }
 
-global.ResizeObserver = ResizeObserver;
+globalThis.ResizeObserver = ResizeObserver;
 
 // Mock HTMLMediaElement.prototype.play
 Object.defineProperty(HTMLMediaElement.prototype, 'play', {

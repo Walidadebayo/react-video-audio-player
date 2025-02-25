@@ -1,6 +1,6 @@
 import { defaults } from 'jest-config';
 
-export default {
+const config = {
   preset: 'ts-jest',
   testEnvironment: 'jest-environment-jsdom',
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
@@ -13,3 +13,4 @@ export default {
     '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
   },
 };
+export default config;

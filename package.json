@@ -53,7 +53,6 @@
     "react": "^18.3.1",
     "react-color-palette": "^7.3.0",
     "react-dom": "^18.3.1",
-    "react-video-audio-player": "^1.0.11",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
     "wavesurfer.js": "^7.9.1"
@@ -63,8 +62,8 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "autoprefixer": "10.4.15",
-    "eslint": "^9.20.1",
-    "eslint-config-next": "^15.1.7",
+    "eslint": "^8",
+    "eslint-config-next": "^14.2.14",
     "postcss": "8.4.30",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.7.3"

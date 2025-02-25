@@ -1,5 +1,4 @@
 import { clsx, type ClassValue } from 'clsx';
-import { ChangeEvent } from 'react';
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
@@ -22,13 +21,19 @@ export const videoProps = [
     prop: "src",
     type: "string",
     default: '""',
-    description: "The URL of the video to embed. This is optional; you may instead use the <b>sources<b> property to specify one or more <b>source</b> elements for the video.",
+    description: "The URL of the video to embed. This is optional; you may instead use the <b>sources</b> property to specify one or more <b>source</b> elements for the video.",
   },
   {
     prop: "sources",
     type: "Array<{ src: string; type: string }>",
     default: "[]",
     description: "An array of objects containing the URL and type of the video to embed. This is optional; you may instead use the <b>src</b> property to specify the URL of the video.",
+  },
+  {
+    prop: "tracks",
+    type: "Array<{ src: string; kind: string; label: string; srclang: string; default?: boolean }>",
+    default: "[]",
+    description: "An array of objects containing the URL, kind, label, and srclang of the tracks to embed.",
   },
   {
     prop: "poster",
@@ -45,7 +50,7 @@ export const videoProps = [
   {
     prop: "preload",
     type: '"auto" | "metadata" | "none" | ""',
-    default: '"metadata"',
+    default: '"auto"',
     description: `This enumerated attribute is intended to provide a hint to the video player about what the author thinks will lead to the best user experience regarding what content is loaded before the video is played. It may have one of the following values:
         <br />
         - <b>none</b>: Indicates that the video should not be preloaded.
@@ -183,10 +188,16 @@ export const videoProps = [
     description: "Callback during video playback progress",
   },
   {
+    prop: "onSeeking",
+    type: "(time: number) => void",
+    default: "undefined",
+    description: "Callback when the video when the user starts seeking",
+  },
+  {
     prop: "onSeeked",
     type: "(time: number) => void",
     default: "undefined",
-    description: "Callback when the video is seeked",
+    description: "Callback when the video after the user finishes seeking",
   },
   {
     prop: "onPlay",
@@ -205,6 +216,48 @@ export const videoProps = [
     type: "() => void",
     default: "undefined",
     description: "Callback when the video ends",
+  },
+  {
+    prop: "onVolumeChange",
+    type: "(volume: number) => void",
+    default: "undefined",
+    description: "Callback when the volume is changed",
+  },
+  {
+    prop: "onPlaybackRateChange",
+    type: "(rate: number) => void",
+    default: "undefined",
+    description: "Callback when the playback rate is changed",
+  },
+  {
+    prop: "onMuteChange",
+    type: "(isMuted: boolean) => void",
+    default: "undefined",
+    description: "Callback when the mute state is changed",
+  },
+  {
+    prop: "onFullscreenChange",
+    type: "(isFullscreen: boolean) => void",
+    default: "undefined",
+    description: "Callback when the fullscreen state is changed",
+  },
+  {
+    prop: "onPictureInPictureChange",
+    type: "(isPictureInPicture: boolean) => void",
+    default: "undefined",
+    description: "Callback when the picture-in-picture state is changed",
+  },
+  {
+    prop: "onDownloadStart",
+    type: "() => void",
+    default: "undefined",
+    description: "Callback when video download starts",
+  },
+  {
+    prop: "onDownloadEnd",
+    type: "(success: boolean) => void",
+    default: "undefined",
+    description: "Callback when video download ends, with success status",
   },
   {
     prop: "onError",
@@ -232,6 +285,7 @@ export const videoProps = [
     Learn more about the <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement" class="underline" target="_blank" rel="noopener noreferrer">HTMLMediaElement</a> interface.
         `,
   },
+
 ];
 
 export const audioProps = [
@@ -363,6 +417,36 @@ export const audioProps = [
     description: "Callback when the audio ends",
   },
   {
+    prop: "onVolumeChange",
+    type: "(volume: number) => void",
+    default: "undefined",
+    description: "Callback when the volume is changed",
+  },
+  {
+    prop: "onPlaybackRateChange",
+    type: "(rate: number) => void",
+    default: "undefined",
+    description: "Callback when the playback rate is changed",
+  },
+  {
+    prop: "onMuteChange",
+    type: "(isMuted: boolean) => void",
+    default: "undefined",
+    description: "Callback when the mute state is changed",
+  },
+  {
+    prop: "onDownloadStart",
+    type: "() => void",
+    default: "undefined",
+    description: "Callback when audio download starts",
+  },
+  {
+    prop: "onDownloadEnd",
+    type: "(success: boolean) => void",
+    default: "undefined",
+    description: "Callback when audio download ends, with success status",
+  },
+  {
     prop: "onError",
     type: "() => void",
     default: "undefined",
@@ -394,4 +478,4 @@ export const audioProps = [
     description: `Get WaveSurfer instance reference to access WaveSurfer properties and methods. Learn more about the
      <a href='https://wavesurfer.xyz/docs/classes/wavesurfer.default' class="underline" target='_blank' rel='noopener noreferrer'>WaveSurfer Methods</a>.`
   },
-];
+]

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { audioProps, videoProps } from "@/lib/utils";
 import Clipboard from "@/components/ui/clipboard";
+import Link from "next/link";
 
 export default function DocsPage() {
   return (
@@ -48,7 +49,9 @@ export default function DocsPage() {
                       {videoProps.map((prop) => (
                         <TableRow key={prop.prop} className="border-b">
                           <TableCell className="p-4">
-                            <code>{prop.prop}</code>
+                            <code className="bg-muted p-1 rounded-md">
+                              {prop.prop}
+                            </code>
                           </TableCell>
                           <TableCell className="p-4">
                             <code>{prop.type}</code>
@@ -152,7 +155,9 @@ import WaveSurfer from "wavesurfer.js";`}
                       {audioProps.map((prop) => (
                         <TableRow key={prop.prop} className="border-b">
                           <TableCell className="p-4">
-                            <code>{prop.prop}</code>
+                            <code className="bg-muted p-1 rounded-md">
+                              {prop.prop}
+                            </code>
                           </TableCell>
                           <TableCell className="p-4">
                             <code>{prop.type}</code>
@@ -230,14 +235,14 @@ function App() {
                   The audio player uses WaveSurfer.js for waveform
                   visualization. For more information about WaveSurfer and its
                   features, visit the{" "}
-                  <a
+                  <Link
                     href="https://wavesurfer.xyz/docs/classes/wavesurfer.default"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline"
                   >
                     WaveSurfer Documentation
-                  </a>
+                  </Link>
                   .
                 </p>
               </section>
@@ -257,6 +262,109 @@ const time = formatTime(125); // "2:05"
 const longTime = formatTime(3661); // "1:01:01"`}
                   />
                 </div>
+
+                <div>
+                  <h3 className="text-2xl font-bold my-4">
+                    Standalone Version Usage
+                  </h3>
+                  <Clipboard
+                    text={`<!-- Standalone Version (no React required) -->
+<div id="video-player"></div>
+<div id="audio-player"></div>
+
+<script src="https://unpkg.com/react-video-audio-player@latest/dist/index.standalone.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/react-video-audio-player@1.0.11/dist/video-audio-player.css">
+
+<script>
+// Initialize the VideoPlayer
+const videoPlayerContainer = document.getElementById('video-player-container');
+const videoPlayer = VideoPlayer({
+    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+    controls: true,
+    autoPlay: false,
+    muted: false,
+    loop: false,
+    poster: 'https://i.ibb.co/W45zMcvj/Sintel-krafy-resized-Viz-Xpress.jpg',
+    onReady: () => {
+        console.log('Video is ready to play');
+    },
+});
+videoPlayerContainer.appendChild(videoPlayer);
+
+// Initialize the AudioPlayer
+const audioPlayerContainer = document.getElementById('audio-player-container');
+const audioPlayer = AudioPlayer({
+    src: 'https://cdn.pixabay.com/audio/2024/11/11/audio_889cf15c3c.mp3',
+    controls: true,
+    autoPlay: false,
+    muted: false,
+    loop: false,
+    onReady: () => {
+        console.log('Audio is ready to play');
+    },
+});
+audioPlayerContainer.appendChild(audioPlayer);
+</script>`}
+                  />
+                </div>
+
+                <div>
+                  <h3 className="text-2xl font-bold my-4">CDN Usage</h3>
+                  <Clipboard
+                    text={`<!-- UMD Version -->
+<div id="video-player-container"></div>
+<div id="audio-player-container"></div>
+
+<!-- UMD -->
+<script src="https://unpkg.com/react-video-audio-player@latest/dist/index.umd.js"></script>
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/react-video-audio-player@1.0.11/dist/video-audio-player.css"
+/>
+
+<!-- React -->
+<script src="https://unpkg.com/react@latest/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@latest/umd/react-dom.production.min.js"></script>
+
+<script>
+  const { VideoPlayer, AudioPlayer } = ReactVideoAudioPlayer;
+
+  const videoProps = {
+    src: "video.mp4",
+    controls: true,
+    autoPlay: false,
+    muted: false,
+    loop: false,
+    poster: "poster.jpg",
+    onReady: () => {
+      console.log("Video is ready to play");
+    },
+  };
+  const VideoComponent = () => React.createElement(VideoPlayer, videoProps);
+  ReactDOM.render(
+    React.createElement(VideoComponent),
+    document.getElementById("video-player-container")
+  );
+
+  const audioProps = {
+    src: "audio.mp3",
+    controls: true,
+    autoPlay: false,
+    muted: false,
+    loop: false,
+    onReady: () => {
+      console.log("Audio is ready to play");
+    },
+  };
+  const AudioComponent = () => React.createElement(AudioPlayer, audioProps);
+  ReactDOM.render(
+    React.createElement(AudioComponent),
+    document.getElementById("audio-player-container")
+  );
+</script>`}
+                  />
+                </div>
+
 
                 <h2 className="text-3xl font-bold my-4">Callback Examples</h2>
 

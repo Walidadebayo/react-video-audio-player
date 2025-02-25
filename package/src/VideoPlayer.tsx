@@ -6,13 +6,12 @@ import React, {
   useEffect,
   useRef,
   CSSProperties,
-  FC,
-  ChangeEvent,
 } from "react";
-import { formatTime } from "./lib/utils";
+import { formatTime } from "./utils";
 import Select from "./components/Select";
 import Dropdown from "./components/Dropdown";
 import "./video-audio-player.css";
+import { updateRangeBackground } from "./YouTubePlayer";
 
 export type preload = "auto" | "metadata" | "none" | "";
 export type VideoControlOptionsToRemove =
@@ -26,7 +25,8 @@ export type VideoControlOptionsToRemove =
   | "mute"
   | "volume"
   | "playbackRate"
-  | "skip-forward-backward";
+  | "skip-forward-backward"
+  | "captions";
 
 export type VideoMimeType =
   | "video/mp4"
@@ -34,10 +34,25 @@ export type VideoMimeType =
   | "video/ogg"
   | "video/quicktime";
 
+export type TrackKind =
+  | "subtitles"
+  | "captions"
+  | "descriptions"
+  | "chapters"
+  | "metadata";
+
 export type sources = {
   src: string;
   type: VideoMimeType;
 }[];
+
+export interface Track {
+  src: string;
+  kind: TrackKind;
+  label: string;
+  srclang: string;
+  default?: boolean;
+}
 
 export interface VideoPlayerProps {
   src?: string;
@@ -61,8 +76,17 @@ export interface VideoPlayerProps {
   doubleClickToFullscreen?: boolean;
   showDownloadButton?: boolean;
   disableShortcuts?: boolean;
+  tracks?: Track[];
   onProgress?: (currentTime: number, duration: number) => void;
   onSeeked?: (time: number) => void;
+  onSeeking?: (time: number) => void;
+  onVolumeChange?: (volume: number) => void;
+  onPlaybackRateChange?: (rate: number) => void;
+  onMuteChange?: (isMuted: boolean) => void;
+  onFullscreenChange?: (isFullscreen: boolean) => void;
+  onPictureInPictureChange?: (isPictureInPicture: boolean) => void;
+  onDownloadStart?: () => void;
+  onDownloadEnd?: (success: boolean) => void;
   onPlay?: () => void;
   onPause?: () => void;
   onEnded?: () => void;
@@ -70,21 +94,10 @@ export interface VideoPlayerProps {
   onReady?: () => void;
   onDuration?: (duration: number) => void;
   getVideoRef?: (ref: HTMLVideoElement | null) => void;
+  onTrackChange?: (track: TextTrack | null) => void;
 }
 
-export const updateRangeBackground = (e: ChangeEvent<HTMLInputElement>) => {
-  const value = (parseFloat(e.target.value) / parseFloat(e.target.max)) * 100;
-  e.target.style.setProperty("--value", `${value}%`);
-};
-
-export const updateRangeBackgroundRef = (ref: HTMLInputElement | null) => {
-  if (ref) {
-    const value = (parseFloat(ref.value) / parseFloat(ref.max)) * 100;
-    ref.style.setProperty("--value", `${value}%`);
-  }
-};
-
-const VideoPlayer: FC<VideoPlayerProps> = ({
+const VideoPlayer = ({
   src,
   accentColor = "#60a5fa",
   customErrorMessage = "An error occurred while trying to play the video.",
@@ -98,7 +111,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
   height = "100%",
   className = "",
   style = {},
-  preload = "metadata",
+  preload = "auto",
   seekTo,
   sources,
   controlsToExclude = [],
@@ -108,6 +121,14 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
   disableShortcuts = false,
   onProgress,
   onSeeked,
+  onSeeking,
+  onVolumeChange,
+  onPlaybackRateChange,
+  onMuteChange,
+  onFullscreenChange,
+  onPictureInPictureChange,
+  onDownloadStart,
+  onDownloadEnd,
   onPlay,
   onPause,
   onEnded,
@@ -115,7 +136,9 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
   onReady,
   onDuration,
   getVideoRef,
-}) => {
+  tracks,
+  onTrackChange,
+}: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -134,6 +157,12 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
   const volumeInputRef = useRef<HTMLInputElement>(null);
   const [showTooltip, setShowTooltip] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [hoverTime, setHoverTime] = useState<number | null>(null);
+  const [hoverPosition, setHoverPosition] = useState<number | null>(null);
+  const [tooltipWidth, setTooltipWidth] = useState<number>(0);
+  const [reverseCurrentTime, setReverseCurrentTime] = useState(false);
+  const [availableTracks, setAvailableTracks] = useState<TextTrack[]>([]);
+  const [currentTrack, setCurrentTrack] = useState<TextTrack | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined" && typeof navigator !== "undefined") {
@@ -142,12 +171,24 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
       }
     }
   }, []);
+  
+  useEffect(() => {
+    if (videoRef.current) {
+      setIsMuted(muted);
+      setVolume(muted ? 0 : 1);
+    }
+  }, [muted]);
 
   useEffect(() => {
     if (seekTo && videoRef.current) {
       videoRef.current.currentTime = seekTo;
+      updateRangeBackground(
+        timelineInputRef.current,
+        seekTo,
+        videoRef.current.duration
+      );
     }
-  }, [seekTo, videoRef]);
+  }, [seekTo]);
 
   const resetControlTimeout = useCallback(() => {
     if (controlTimeoutRef.current) {
@@ -195,14 +236,22 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
   }, [onReady, onDuration]);
 
   useEffect(() => {
+    const timelineInput = timelineInputRef.current;
+    if (currentTime !== 0) {
+      updateRangeBackground(timelineInput);
+    }
+  }, [currentTime, seekTo, timelineInputRef]);
+
+  useEffect(() => {
+    const volumeInput = volumeInputRef.current;
+    updateRangeBackground(volumeInput);
+  }, [volume]);
+
+  useEffect(() => {
     const videoElement = videoRef.current;
     const handleTimeUpdate = () => {
       if (videoElement) {
         setCurrentTime(videoElement.currentTime);
-        const timelineInput = timelineInputRef.current;
-        if (videoElement.currentTime !== 0) {
-          updateRangeBackgroundRef(timelineInput);
-        }
         if (onProgress) {
           onProgress(videoElement.currentTime, videoElement.duration);
         }
@@ -262,11 +311,54 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
       }
     };
 
+    const handleSeeked = () => {
+      if (onSeeked) {
+        onSeeked(videoElement?.currentTime || 0);
+      }
+    };
+
+    const handleSeeking = () => {
+      if (onSeeking) {
+        onSeeking(videoElement?.currentTime || 0);
+      }
+    };
+
+    const handleVolumeChange = () => {
+      if (onVolumeChange) {
+        onVolumeChange(videoElement?.volume || 1);
+      }
+    };
+
+    const handleFullscreenChange = () => {
+      if (onFullscreenChange) {
+        onFullscreenChange(!!document.fullscreenElement);
+        setIsFullscreen(!!document.fullscreenElement);
+      }
+    };
+
+    const handlePictureInPictureChange = () => {
+      if (onPictureInPictureChange) {
+        onPictureInPictureChange(!!document.pictureInPictureElement);
+      }
+    };
+
     if (videoElement) {
       videoElement.addEventListener("play", handlePlay);
       videoElement.addEventListener("pause", handlePause);
       videoElement.addEventListener("ended", handleEnded);
       videoElement.addEventListener("error", handleError);
+      videoElement.addEventListener("seeked", handleSeeked);
+      videoElement.addEventListener("seeking", handleSeeking);
+      videoElement.addEventListener("volumechange", handleVolumeChange);
+      document.addEventListener("fullscreenchange", handleFullscreenChange);
+      videoElement.addEventListener(
+        "enterpictureinpicture",
+        handlePictureInPictureChange
+      );
+      videoElement.addEventListener(
+        "leavepictureinpicture",
+        handlePictureInPictureChange
+      );
     }
 
     return () => {
@@ -275,9 +367,34 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
         videoElement.removeEventListener("pause", handlePause);
         videoElement.removeEventListener("ended", handleEnded);
         videoElement.removeEventListener("error", handleError);
+        videoElement.removeEventListener("seeked", handleSeeked);
+        videoElement.removeEventListener("seeking", handleSeeking);
+        videoElement.removeEventListener("volumechange", handleVolumeChange);
+        document.removeEventListener(
+          "fullscreenchange",
+          handleFullscreenChange
+        );
+        videoElement.removeEventListener(
+          "enterpictureinpicture",
+          handlePictureInPictureChange
+        );
+        videoElement.removeEventListener(
+          "leavepictureinpicture",
+          handlePictureInPictureChange
+        );
       }
     };
-  }, [onPlay, onPause, onEnded, onError]);
+  }, [
+    onPlay,
+    onPause,
+    onEnded,
+    onError,
+    onSeeked,
+    onSeeking,
+    onVolumeChange,
+    onFullscreenChange,
+    onPictureInPictureChange,
+  ]);
 
   useEffect(() => {
     if (getVideoRef) {
@@ -290,7 +407,13 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
     if (videoElement && src) {
       videoElement.src = src;
       videoElement.load();
-      updateRangeBackgroundRef(volumeInputRef.current);
+      // if (currentTime) {
+      //   updateRangeBackground(
+      //     timelineInputRef.current,
+      //     0,
+      //     videoElement.duration
+      //   );
+      // }
       if (videoElement.error) {
         setVideoError(true);
       } else {
@@ -299,13 +422,104 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
     }
   }, [src]);
 
+  const fetchSubtitleBlobUrl = async (url: string): Promise<string> => {
+    const response = await fetch(url);
+    let blob = await response.blob();
+
+    if (url.endsWith(".srt")) {
+      const srtText = await blob.text();
+      const vttText =
+        "WEBVTT\n\n" +
+        srtText
+          .replace(
+            /(\d+)\n(\d{2}:\d{2}:\d{2}),(\d{3}) --> (\d{2}:\d{2}:\d{2}),(\d{3})/g,
+            "$1\n$2.$3 --> $4.$5"
+          )
+          .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2");
+      blob = new Blob([vttText], { type: "text/vtt" });
+    }
+
+    return URL.createObjectURL(blob);
+  };
+
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (videoElement && tracks?.length && src) {
+      // Remove existing tracks
+      while (videoElement.firstChild) {
+        videoElement.removeChild(videoElement.firstChild);
+      }
+
+      const blobUrls: string[] = [];
+
+      // Add new tracks
+      tracks.forEach(async (track) => {
+        const trackBlobUrl = await fetchSubtitleBlobUrl(track.src);
+        const trackElement = document.createElement("track");
+        blobUrls.push(trackBlobUrl);
+        trackElement.src = trackBlobUrl;
+        trackElement.kind = track.kind;
+        trackElement.label = track.label;
+        trackElement.srclang = track.srclang;
+        if (track.default) trackElement.default = true;
+        const existingTrack = Array.from(videoElement.textTracks).find(
+          (t) => t.label === track.label
+        );
+        if (!existingTrack) {
+          videoElement.appendChild(trackElement);
+        }
+      });
+
+      // Get all tracks after they're loaded
+      const handleTracksLoaded = () => {
+        setTimeout(() => {
+          const trackList = Array.from(videoElement.textTracks);
+
+          setAvailableTracks(trackList);
+
+          // Set default track if specified
+          const defaultTrack = trackList.find((t) => t.mode === "showing");
+          if (defaultTrack) {
+            setCurrentTrack(defaultTrack);
+            if (onTrackChange) onTrackChange(defaultTrack);
+          }
+        }, 1000);
+      };
+
+      videoElement.addEventListener("loadedmetadata", handleTracksLoaded);
+      return () => {
+        videoElement.removeEventListener("loadedmetadata", handleTracksLoaded);
+        blobUrls.forEach((url) => URL.revokeObjectURL(url));
+      };
+    }
+  }, [tracks, onTrackChange, src, videoRef]);
+
+  const handleTrackChange = (track: TextTrack | null) => {
+    // Disable all tracks first
+    availableTracks.forEach((t) => {
+      t.mode = "disabled";
+    });
+
+    // Enable selected track
+    if (track) {
+      track.mode = "showing";
+      setCurrentTrack(track);
+      if (onTrackChange) onTrackChange(track);
+    } else {
+      setCurrentTrack(null);
+      if (onTrackChange) onTrackChange(null);
+    }
+    resetControlTimeout();
+  };
+
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
     if (newVolume === 0) {
-      console.log(newVolume);
       setIsMuted(true);
+      if (onMuteChange) onMuteChange(true);
     } else {
       setIsMuted(false);
+      if (onMuteChange) onMuteChange(false);
     }
     setVolume(newVolume);
     resetControlTimeout();
@@ -316,9 +530,6 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
       const newTime = parseFloat(e.target.value);
       videoRef.current.currentTime = newTime;
       setCurrentTime(newTime);
-      if (onSeeked) {
-        onSeeked(newTime);
-      }
     }
     resetControlTimeout();
   };
@@ -328,10 +539,11 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
       setPlaybackRate(rate);
       if (videoRef.current) {
         videoRef.current.playbackRate = rate;
+        if (onPlaybackRateChange) onPlaybackRateChange(rate);
       }
       resetControlTimeout();
     },
-    [resetControlTimeout]
+    [resetControlTimeout, onPlaybackRateChange]
   );
 
   const togglePlay = useCallback(() => {
@@ -350,11 +562,11 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
     if (videoRef.current) {
       videoRef.current.muted = !isMuted;
       setIsMuted(!isMuted);
-      videoRef.current.volume = volume === 0 ? 1 : volume;
-      setVolume(volume === 0 ? 1 : volume);
+      updateRangeBackground(volumeInputRef.current, !isMuted ? 0 : volume, 1);
+      if (onMuteChange) onMuteChange(!isMuted);
       resetControlTimeout();
     }
-  }, [isMuted, resetControlTimeout, volume]);
+  }, [isMuted, resetControlTimeout, volume, onMuteChange]);
 
   const toggleFullscreen = useCallback(() => {
     if (!isFullscreen) {
@@ -377,53 +589,11 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
     resetControlTimeout();
   }, [isFullscreen, resetControlTimeout]);
 
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      if (document.fullscreenElement) {
-        if (videoContainerRef.current && videoRef.current) {
-          videoContainerRef.current.classList.add("fullscreen-container");
-          videoRef.current.classList.add("fullscreen-video");
-        }
-        setIsFullscreen(true);
-      } else {
-        setIsFullscreen(false);
-        if (videoContainerRef.current && videoRef.current) {
-          videoContainerRef.current.classList.remove("fullscreen-container");
-          videoRef.current.classList.remove("fullscreen-video");
-        }
-      }
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-    };
-  }, []);
-
   const skipTime = useCallback(
     (seconds: number) => {
       if (videoRef.current) {
-        if (videoRef.current.currentTime + seconds < 0) {
-          setCurrentTime(0);
-          updateRangeBackgroundRef(timelineInputRef.current);
-          videoRef.current.currentTime = 0;
-          videoRef.current.play();
-          setIsPlaying(true);
-        } else if (
-          videoRef.current.currentTime + seconds >
-          videoRef.current.duration
-        ) {
-          setCurrentTime(0);
-          updateRangeBackgroundRef(timelineInputRef.current);
-          videoRef.current.currentTime = 0;
-          videoRef.current.play();
-          setIsPlaying(true);
-        } else {
-          setCurrentTime(videoRef.current.currentTime + seconds);
-          updateRangeBackgroundRef(timelineInputRef.current);
-          videoRef.current.currentTime += seconds;
-        }
+        videoRef.current.currentTime += seconds;
+        setCurrentTime(videoRef.current.currentTime);
         resetControlTimeout();
       }
     },
@@ -482,27 +652,58 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
     setShowTooltip(false);
   };
 
+  const handleTimelineMouseMove = (e: React.MouseEvent<HTMLInputElement>) => {
+    const timeline = e.currentTarget;
+    const rect = timeline.getBoundingClientRect();
+    const position = e.clientX - rect.left;
+    const percentage = position / rect.width;
+    const time = (videoRef.current?.duration || 0) * percentage;
+    setHoverTime(time);
+    setHoverPosition(position);
+  };
+
+  const handleTimelineMouseLeave = () => {
+    setHoverTime(null);
+    setHoverPosition(null);
+  };
+
+  useEffect(() => {
+    if (hoverTime !== null && hoverPosition !== null) {
+      const tooltip = document.querySelector(".timeline-tooltip");
+      if (tooltip) {
+        setTooltipWidth(tooltip.clientWidth);
+      }
+    }
+  }, [hoverTime, hoverPosition]);
+
   useEffect(() => {
     if (disableShortcuts) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key) {
         case "ArrowRight":
-          updateRangeBackgroundRef(timelineInputRef.current);
           skipTime(10);
           break;
         case "ArrowLeft":
           skipTime(-10);
-          updateRangeBackgroundRef(timelineInputRef.current);
           break;
         case "ArrowUp":
           e.preventDefault();
-          setVolume((prevVolume) => Math.min(prevVolume + 0.1, 1));
-          updateRangeBackgroundRef(volumeInputRef.current);
+          setVolume((prevVolume) => {
+            if (prevVolume === 0) {
+              setIsMuted(false);
+            }
+            return Math.min(prevVolume + 0.1, 1);
+          });
           break;
         case "ArrowDown":
           e.preventDefault();
-          setVolume((prevVolume) => Math.max(prevVolume - 0.1, 0));
-          updateRangeBackgroundRef(volumeInputRef.current);
+          setVolume((prevVolume) => {
+            const newVolume = Math.max(prevVolume - 0.1, 0);
+            if (newVolume === 0) {
+              setIsMuted(true);
+            }
+            return newVolume;
+          });
           break;
         case " ":
           e.preventDefault();
@@ -519,17 +720,27 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
         case "P":
           togglePictureInPicture();
           break;
-        case "s":
-          handleSpeedChange(
+        case "s": {
+          const speedRate =
             playbackRate === 1
+              ? 1.25
+              : playbackRate === 1.25
               ? 1.5
               : playbackRate === 1.5
+              ? 1.75
+              : playbackRate === 1.75
               ? 2
               : playbackRate === 2
+              ? 0.25
+              : playbackRate === 0.25
               ? 0.5
-              : 1
-          );
+              : playbackRate === 0.5
+              ? 0.75
+              : 1;
+          handleSpeedChange(speedRate);
+          if (onPlaybackRateChange) onPlaybackRateChange(speedRate);
           break;
+        }
         default:
           break;
       }
@@ -550,6 +761,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
     toggleMute,
     toggleFullscreen,
     togglePictureInPicture,
+    onPlaybackRateChange,
   ]);
 
   useEffect(() => {
@@ -591,16 +803,25 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
 
   const downloadVideo = async (url: string, type = "mp4") => {
     if (isDownloading) return;
-    setIsDownloading(true);
-    const link = document.createElement("a");
-    const response = await fetch(url);
-    const blob = await response.blob();
-    link.href = URL.createObjectURL(blob);
-    link.download =
-      Math.random().toString(36).substring(2, 9) + "." + type || "mp4";
-    link.click();
-    link.remove();
-    setIsDownloading(false);
+    if (onDownloadStart) onDownloadStart();
+    try {
+      setIsDownloading(true);
+      const link = document.createElement("a");
+      const response = await fetch(url);
+      const blob = await response.blob();
+      link.href = URL.createObjectURL(blob);
+      link.download =
+        Math.random().toString(36).substring(2, 9) + "." + type || "mp4";
+      link.click();
+      link.remove();
+      setIsDownloading(false);
+      if (onDownloadEnd) onDownloadEnd(true);
+    } catch (error) {
+      console.error(error);
+      setIsDownloading(false);
+      if (onDownloadEnd) onDownloadEnd(false);
+      alert("An error occurred while trying to download the video.");
+    }
   };
 
   const handleDownloadClick = () => {
@@ -626,11 +847,17 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
             minHeight: "180px",
           } as CSSProperties
         }
-        className="video-player-wrapper"
+        className={`video-player-wrapper ${
+          isFullscreen ? "fullscreen-container" : ""
+        }`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <div className="control-relative">
+        <div
+          className={`control-relative ${
+            isFullscreen ? "fullscreen-video" : ""
+          }`}
+        >
           <video
             src={src}
             ref={videoRef}
@@ -661,7 +888,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                 <source key={src} src={src} type={type} />
               ))}
           </video>
-          {showTooltip && (
+          {showTooltip && !disableDoubleClick && (
             <div className="show-tooltip">
               Double click to{" "}
               {doubleClickToFullscreen ? "fullscreen" : "play/pause"}
@@ -849,15 +1076,22 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                     max={duration || 0}
                     step="any"
                     value={currentTime}
-                    onChange={(e) => {
-                      handleTimelineChange(e);
-                      updateRangeBackground(e);
-                    }}
+                    onChange={(e) => handleTimelineChange(e)}
+                    onMouseMove={handleTimelineMouseMove}
+                    onMouseLeave={handleTimelineMouseLeave}
                     ref={timelineInputRef}
                     disabled={videoError}
-                    className="accent-color-input w-100"
+                    className="accent-color-input timeline"
                     aria-label="Seek control"
                   />
+                )}
+                {hoverTime !== null && hoverPosition !== null && (
+                  <div
+                    className="timeline-tooltip accent-color"
+                    style={{ left: hoverPosition - tooltipWidth / -4.7 }}
+                  >
+                    {formatTime(hoverTime)}
+                  </div>
                 )}
                 <div className="all-controls-bottom">
                   <div className="left-controls child-controls">
@@ -946,10 +1180,23 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                         </button>
                       )}
                     </span>
-                    <div className="current-time-duration">
+                    <button
+                      className="current-time-duration accent-color-hover"
+                      onClick={() => {
+                        if (videoRef.current) {
+                          if (!reverseCurrentTime) {
+                            setReverseCurrentTime(true);
+                          } else {
+                            setReverseCurrentTime(false);
+                          }
+                        }
+                      }}
+                    >
                       {!controlsToExclude.includes("current-time") && (
                         <span className="show-control-inline-flex">
-                          {formatTime(currentTime)}
+                          {reverseCurrentTime
+                            ? formatTime(currentTime - duration)
+                            : formatTime(currentTime)}
                         </span>
                       )}
                       {!controlsToExclude.includes("duration") &&
@@ -975,13 +1222,13 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                           {formatTime(duration)}
                         </span>
                       )}
-                    </div>
+                    </button>
                     {!controlsToExclude.includes("mute") && (
                       <button
                         onClick={toggleMute}
                         disabled={videoError}
                         className={`buttons accent-color-hover`}
-                        aria-label={isMuted ? "Unmute" : "Mute"}
+                        aria-label={isMuted || muted ? "Unmute" : "Mute"}
                       >
                         {isMuted ? (
                           <svg
@@ -1025,10 +1272,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                         max="1"
                         step="any"
                         value={isMuted ? 0 : volume}
-                        onChange={(e) => {
-                          handleVolumeChange(e);
-                          updateRangeBackground(e);
-                        }}
+                        onChange={(e) => handleVolumeChange(e)}
                         disabled={videoError}
                         ref={volumeInputRef}
                         className={`volume-slider accent-color-input ${
@@ -1041,7 +1285,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                   <div className="child-controls right-controls">
                     {!controlsToExclude.includes("playbackRate") && (
                       <div
-                        className={`control-relative ${
+                        className={`control-relative color-white ${
                           containerWidth < 180
                             ? "hide-control"
                             : "show-control-inline-flex"
@@ -1064,6 +1308,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                           onClick={(value) =>
                             handleSpeedChange(value as number)
                           }
+                          key={playbackRate}
                         />
                       </div>
                     )}
@@ -1072,7 +1317,7 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                         onClick={togglePictureInPicture}
                         disabled={videoError}
                         className={`buttons accent-color-hover ${
-                          containerWidth < 222 ? "hide-control" : ""
+                          containerWidth < 228 ? "hide-control" : ""
                         }`}
                         aria-label="Picture-in-picture"
                       >
@@ -1095,11 +1340,51 @@ const VideoPlayer: FC<VideoPlayerProps> = ({
                         </svg>
                       </button>
                     )}
+                    {!controlsToExclude.includes("captions") && tracks && (
+                      <div
+                        className={`control-relative color-white ${
+                          containerWidth < 439 &&
+                          (containerWidth > 400 || containerWidth < 340)
+                            ? "hide-control"
+                            : "show-control-inline-flex"
+                        }`}
+                      >
+                        <Dropdown
+                          items={[
+                            {
+                              label: "Off",
+                              onClick: () => handleTrackChange(null),
+                            },
+                            ...availableTracks.map((track) => ({
+                              label: track.label,
+                              onClick: () => handleTrackChange(track),
+                            })),
+                          ]}
+                          tickSelected
+                          ariaLabel="Captions"
+                          buttonLabel={
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill={currentTrack ? accentColor : "currentColor"}
+                              width="24"
+                              height="24"
+                              className="accent-color-hover-cc"
+                            >
+                              <path d="M21 3C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3H21ZM20 5H4V19H20V5ZM9 8C10.1045 8 11.1049 8.44841 11.829 9.173L10.4153 10.5866C10.0534 10.2241 9.55299 10 9 10C7.895 10 7 10.895 7 12C7 13.105 7.895 14 9 14C9.5525 14 10.0525 13.7762 10.4144 13.4144L11.828 14.828C11.104 15.552 10.104 16 9 16C6.792 16 5 14.208 5 12C5 9.792 6.792 8 9 8ZM16 8C17.1045 8 18.1049 8.44841 18.829 9.173L17.4153 10.5866C17.0534 10.2241 16.553 10 16 10C14.895 10 14 10.895 14 12C14 13.105 14.895 14 16 14C16.5525 14 17.0525 13.7762 17.4144 13.4144L18.828 14.828C18.104 15.552 17.104 16 16 16C13.792 16 12 14.208 12 12C12 9.792 13.792 8 16 8Z"></path>
+                            </svg>
+                          }
+                          defaultSelectedLabel={currentTrack?.label || "Off"}
+                        />
+                      </div>
+                    )}
                     {!controlsToExclude.includes("fullscreen") && (
                       <button
                         onClick={toggleFullscreen}
                         disabled={videoError}
-                        className="buttons accent-color-hover"
+                        className={`buttons accent-color-hover ${
+                          containerWidth < 120 ? "hide-control" : ""
+                        }`}
                         aria-label={
                           isFullscreen ? "Exit fullscreen" : "Fullscreen"
                         }

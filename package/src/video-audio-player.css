@@ -8,6 +8,12 @@
 
 .accent-color-hover:hover {
   background-color: var(--accent-color) !important;
+  transition: background-color 0.2s !important;
+}
+
+.accent-color-hover-cc:hover {
+  fill: currentColor !important;
+  transition: fill 0.2s !important;
 }
 
 .accent-color-input {
@@ -57,7 +63,19 @@
   transform: scale(1.1) !important;
 }
 
-.video-player-wrapper .show-tooltip {
+.fullscreen-video {
+  @apply !w-full flex items-center justify-center;
+}
+
+.fullscreen-video video {
+  @apply !w-full !h-full object-cover;
+}
+
+.fullscreen-container {
+  @apply !h-screen flex items-center justify-center;
+}
+
+.video-player-wrapper .show-tooltip { 
   @apply absolute top-0 left-1/2 transform -translate-x-1/2 mt-2 px-2 py-1 bg-black text-white text-xs rounded;
 }
 
@@ -69,10 +87,11 @@
   @apply text-red-500 flex flex-col gap-4 justify-center items-center;
 }
 
-.video-player-wrapper .error-message .button {
-  @apply text-white bg-red-500 px-4 py-2 rounded-md hover:bg-red-600;
+.video-player-wrapper .error-message button {
+  @apply text-white bg-red-500 px-2 py-1 rounded-md hover:bg-red-600;
 }
-¬ .video-player-wrapper .error-message span {
+
+.video-player-wrapper .error-message span {
   @apply text-xs text-center;
 }
 
@@ -89,11 +108,11 @@
 }
 
 .video-player-wrapper .center-playPause-button {
-  @apply hover:!bg-black/90 w-16 h-16 text-white grid place-items-center rounded-full outline-none transition-colors;
+  @apply hover:!bg-black/80 w-16 h-16 text-white grid place-items-center rounded-full outline-none transition-colors;
 }
 
 .video-player-wrapper .mobile-controls-wrapper {
-  @apply flex items-center justify-center gap-2;
+  @apply flex items-center justify-center space-x-2;
 }
 
 .video-player-wrapper .mobile-controls-wrapper .skip-forward-backward {
@@ -128,8 +147,8 @@
   @apply w-full bottom-0 absolute px-2 py-1 bg-black/70;
 }
 
-.video-player-wrapper .w-100 {
-  @apply w-full;
+.video-player-wrapper .timeline {
+  @apply cursor-pointer w-full relative;
 }
 
 .video-player-wrapper .all-controls-bottom {
@@ -145,7 +164,7 @@
 }
 
 .video-player-wrapper .all-controls-bottom .current-time-duration {
-  @apply text-white text-xs inline-flex gap-1;
+  @apply text-white text-xs inline-flex gap-1 items-center px-2 py-1 rounded;
 }
 
 .video-player-wrapper .download-button-wrapper {
@@ -189,7 +208,11 @@
 }
 
 .audio-player-wrapper .error-message {
-  @apply text-red-500;
+  @apply text-red-500 flex flex-wrap gap-4 justify-center items-center;
+}
+
+.audio-player-wrapper .error-message button {
+  @apply text-white bg-red-500 px-2 py-1 rounded-md hover:bg-red-600;
 }
 
 .volume-slider {
@@ -226,7 +249,7 @@
 }
 
 .dropdown .dropdown-button {
-  @apply items-center justify-between whitespace-nowrap rounded-md border bg-transparent text-base focus:outline-none [&>span]:line-clamp-1 w-min border-none  focus:ring-0 p-1 h-full text-gray-700 dark:text-gray-100;
+  @apply items-center justify-between whitespace-nowrap rounded-md border bg-transparent text-base focus:outline-none [&>span]:line-clamp-1 w-min border-none  focus:ring-0 p-1 h-full;
 }
 
 .dropdown .dropdown-content {
@@ -244,16 +267,21 @@
 
 .dropdown .dropdown-content .dropdown-items,
 .dropdown .select-content .dropdown-items {
-  @apply relative z-50 p-1 max-h-96 min-w-[8rem] overflow-hidden space-y-1 rounded-md border bg-slate-50 dark:bg-gray-900 shadow-md;
+  @apply relative z-50 p-1 max-h-96 min-w-[8rem] space-y-1 rounded-md border bg-slate-50 dark:bg-gray-900 shadow-md;
 }
 
 .dropdown .dropdown-content .dropdown-items .dropdown-item,
 .dropdown .select-content .dropdown-items .dropdown-item {
-  @apply relative flex w-full hover:bg-gray-200 dark:hover:bg-gray-500 cursor-pointer select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none;
+  @apply relative flex w-full hover:bg-gray-200 dark:hover:bg-gray-500 dark:text-gray-100 text-gray-800 cursor-pointer select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none;
 }
 
 .dropdown
   .select-content
+  .dropdown-items
+  .dropdown-item
+  .select-item-icon-check,
+.dropdown
+  .dropdown-content
   .dropdown-items
   .dropdown-item
   .select-item-icon-check {
@@ -262,4 +290,12 @@
 
 .dropdown .select-content .dropdown-items .dropdown-item.selected {
   @apply bg-gray-200 dark:bg-gray-500;
+}
+
+.timeline-tooltip {
+  @apply absolute text-white text-xs px-2 py-1 rounded whitespace-nowrap pointer-events-none -top-4 -left-1/2 -translate-x-1/2 after:absolute after:-bottom-2 after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-l-transparent after:border-r-transparent after:border-b-transparent after:border-[var(--accent-color)];
+}
+
+.color-white {
+  @apply text-white;
 }

@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="https://react-video-audio-player.vercel.app">   
+  <a href="https://react-video-audio-player.vercel.app">
     <picture>
       <img alt="React Video Audio Player logo" src="https://i.ibb.co/nsrdWgxg/Logo.png" height="128">
     </picture>
@@ -19,6 +19,25 @@
 
 React Video Audio Player is a lightweight, customizable **React video player** and **React audio player** that supports video, audio, and streaming playback. Perfect for building modern media applications.
 
+- [Getting Started](#getting-started)
+- [Features](#features)
+  - [Video Player](#video-player)
+  - [Audio Player](#audio-player)
+- [Installation](#installation)
+  - [NPM](#npm)
+  - [CDN](#cdn)
+- [🚀 Quick Start](#-quick-start)
+- [CDN Usage](#cdn-usage)
+  - [UMD Version (with React)](#umd-version-with-react)
+  - [Standalone Version (no React required)](#standalone-version-no-react-required)
+- [📖 Full Documentation](#-full-documentation)
+- [License](#license)
+- [Contributing](#contributing)
+- [Acknowledgements](#acknowledgements)
+- [Code of Conduct](#code-of-conduct)
+- [References](#references)
+- [Author](#author)
+
 ## Features
 
 ✅ Full support for **video and audio**  
@@ -27,7 +46,7 @@ React Video Audio Player is a lightweight, customizable **React video player** a
 ✅ Audio Player works with **MP3, WAV, M4A, MP4, AAC, WMA, FLAC, OGG, OPUS, and WEBM**  
 ✅ Video Player works with **MP4, WEBM, OGV/OGG, and MKV**  
 ✅ Responsive and **easy to integrate in React apps**  
-✅ **Keyboard shortcuts** for easy navigation  
+✅ **Keyboard shortcuts** for easy navigation
 
 ### Video Player
 
@@ -38,7 +57,7 @@ React Video Audio Player is a lightweight, customizable **React video player** a
 - **Volume Control**: Adjust the volume.
 - **Playback Speed**: Change the playback speed (0.5x, 1x, 1.5x, 2x).
 - **Seek Control**: Seek to different parts of the video.
-- **Keyboard Shortcuts**: Built-in keyboard shortcuts for better accessibility and user experience.  
+- **Keyboard Shortcuts**: Built-in keyboard shortcuts for better accessibility and user experience.
 
 ### Audio Player
 
@@ -47,9 +66,11 @@ React Video Audio Player is a lightweight, customizable **React video player** a
 - **Volume Control**: Adjust the volume.
 - **Playback Speed**: Change the playback speed (0.5x, 1x, 1.5x, 2x).
 - **Seek Control**: Seek to different parts of the audio.
-- **Keyboard Shortcuts**: Built-in keyboard shortcuts for better accessibility and user experience.  
+- **Keyboard Shortcuts**: Built-in keyboard shortcuts for better accessibility and user experience.
 
 ## Installation
+
+### NPM
 
 To install the package, use npm:
 
@@ -57,7 +78,28 @@ To install the package, use npm:
 npm install react-video-audio-player
 ```
 
+### CDN
+
+You can also include the package directly via CDN:
+
+```html
+<!-- UMD -->
+<script src="https://unpkg.com/react-video-audio-player@latest/dist/index.umd.js"></script>
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/react-video-audio-player@1.0.11/dist/video-audio-player.css"
+/>
+
+<!-- Standalone version (no React required) -->
+<script src="https://unpkg.com/react-video-audio-player@latest/dist/index.standalone.js"></script>
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/react-video-audio-player@1.0.11/dist/video-audio-player.css"
+/>
+```
+
 ## 🚀 Quick Start
+
 ```tsx
 import { VideoPlayer, AudioPlayer } from "react-video-audio-player";
 
@@ -65,10 +107,115 @@ import { VideoPlayer, AudioPlayer } from "react-video-audio-player";
 <AudioPlayer src="audio.mp3" controls />;
 ```
 
+## CDN Usage
+
+### UMD Version (with React)
+
+```html
+<div id="video-player-container"></div>
+<div id="audio-player-container"></div>
+
+<!-- UMD -->
+<script src="https://unpkg.com/react-video-audio-player@latest/dist/index.umd.js"></script>
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/react-video-audio-player@1.0.11/dist/video-audio-player.css"
+/>
+
+<!-- React -->
+<script src="https://unpkg.com/react@latest/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@latest/umd/react-dom.production.min.js"></script>
+
+<script>
+  const { VideoPlayer, AudioPlayer } = ReactVideoAudioPlayer;
+
+  const videoProps = {
+    src: "video.mp4",
+    controls: true,
+    autoPlay: false,
+    muted: false,
+    loop: false,
+    poster: "poster.jpg",
+    onReady: () => {
+      console.log("Video is ready to play");
+    },
+  };
+  const VideoComponent = () => React.createElement(VideoPlayer, videoProps);
+  ReactDOM.render(
+    React.createElement(VideoComponent),
+    document.getElementById("video-player-container")
+  );
+
+  const audioProps = {
+    src: "audio.mp3",
+    controls: true,
+    autoPlay: false,
+    muted: false,
+    loop: false,
+    onReady: () => {
+      console.log("Audio is ready to play");
+    },
+  };
+  const AudioComponent = () => React.createElement(AudioPlayer, audioProps);
+  ReactDOM.render(
+    React.createElement(AudioComponent),
+    document.getElementById("audio-player-container")
+  );
+</script>
+```
+
+### Standalone Version (no React required)
+
+```html
+<div id="video-player-container"></div>
+<div id="audio-player-container"></div>
+
+<script src="https://unpkg.com/react-video-audio-player@latest/dist/index.standalone.js"></script>
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/react-video-audio-player@1.0.11/dist/video-audio-player.css"
+/>
+
+<script>
+  // Initialize the VideoPlayer
+  const videoPlayerContainer = document.getElementById(
+    "video-player-container"
+  );
+  const videoPlayer = VideoPlayer({
+    src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+    controls: true,
+    autoPlay: false,
+    muted: false,
+    loop: false,
+    poster: "https://i.ibb.co/W45zMcvj/Sintel-krafy-resized-Viz-Xpress.jpg",
+    onReady: () => {
+      console.log("Video is ready to play");
+    },
+  });
+  videoPlayerContainer.appendChild(videoPlayer);
+
+  // Initialize the AudioPlayer
+  const audioPlayerContainer = document.getElementById(
+    "audio-player-container"
+  );
+  const audioPlayer = AudioPlayer({
+    src: "https://cdn.pixabay.com/audio/2024/11/11/audio_889cf15c3c.mp3",
+    controls: true,
+    autoPlay: false,
+    muted: false,
+    loop: false,
+    onReady: () => {
+      console.log("Audio is ready to play");
+    },
+  });
+  audioPlayerContainer.appendChild(audioPlayer);
+</script>
+```
+
 ## 📖 Full Documentation
+
 For detailed guides, API reference, and demos, visit:  
 ➡️ **[react-video-audio-player.vercel.app](https://react-video-audio-player.vercel.app/docs)**
-
 
 ## License
 

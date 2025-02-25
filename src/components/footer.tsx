@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const Footer = () => {
   return (
     <footer className="border-t">
@@ -10,14 +12,14 @@ const Footer = () => {
             <span className="text-sm text-muted-foreground">Made with</span>
             <span className="text-red-500">❤️</span>
             <span className="text-sm text-muted-foreground">by</span>
-            <a
+            <Link
               href="https://walidadebayo.netlify.app"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm font-medium underline underline-offset-4"
             >
               Walid Adebayo
-            </a>
+            </Link>
           </div>
         </div>
       </div>

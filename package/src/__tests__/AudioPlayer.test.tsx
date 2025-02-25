@@ -19,6 +19,7 @@ beforeAll(() => {
 describe("AudioPlayer", () => {
   const defaultProps = {
     src: "https://www.w3schools.com/html/horse.ogg",
+    muted: false,
   };
 
   test("renders AudioPlayer component", () => {
