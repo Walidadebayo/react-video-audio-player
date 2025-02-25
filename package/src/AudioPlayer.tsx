@@ -8,7 +8,7 @@ import React, {
   CSSProperties,
 } from "react";
 import WaveSurfer from "wavesurfer.js";
-import { formatTime } from "./utils";
+import { formatTime, playbackRateOptions } from "./utils";
 import { updateRangeBackground } from "./utils";
 import Select from "./components/Select";
 import "./video-audio-player.css";
@@ -36,6 +36,7 @@ export interface AudioPlayerProps {
   controlsToExclude?: AudioControlOptionsToRemove[];
   disableShortcuts?: boolean;
   showDownloadButton?: boolean;
+  defaultPlaybackRate?: number;
   onProgress?: (currentTime: number, duration: number) => void;
   onSeeked?: (time: number) => void;
   onDownloadStart?: () => void;
@@ -68,6 +69,7 @@ const AudioPlayer = ({
   controlsToExclude = [],
   showDownloadButton = false,
   disableShortcuts = false,
+  defaultPlaybackRate,
   onProgress,
   onSeeked,
   onDownloadStart,
@@ -105,6 +107,20 @@ const AudioPlayer = ({
       setVolume(muted ? 0 : 1);
     }
   }, [muted, waveSurfer]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      if (waveSurfer.current && defaultPlaybackRate && duration) {
+        const newPlaybackRate = Math.min(
+          Math.max(Number(defaultPlaybackRate) || 1, 0.0625),
+          16
+        );
+        setPlaybackRate(newPlaybackRate);
+        waveSurfer.current.setPlaybackRate(newPlaybackRate);
+        if (onPlaybackRateChange) onPlaybackRateChange(newPlaybackRate);
+      }
+    }, 500);
+  }, [defaultPlaybackRate, duration, onPlaybackRateChange]);
 
   useEffect(() => {
     const volumeInput = volumeInputRef.current;
@@ -585,19 +601,30 @@ const AudioPlayer = ({
                 >
                   <Select
                     items={[
-                      { label: "0.25x", value: 0.25 },
-                      { label: "0.5x", value: 0.5 },
-                      { label: "0.75x", value: 0.75 },
-                      { label: "1x", value: 1 },
-                      { label: "1.25x", value: 1.25 },
-                      { label: "1.5x", value: 1.5 },
-                      { label: "1.75x", value: 1.75 },
-                      { label: "2x", value: 2 },
-                    ]}
+                      ...playbackRateOptions.map((rate) => ({
+                        value: rate,
+                        label: `${rate}x`,
+                      })),
+                      ...(defaultPlaybackRate &&
+                      !playbackRateOptions.includes(defaultPlaybackRate)
+                        ? [
+                            {
+                              value: defaultPlaybackRate,
+                              label: `${defaultPlaybackRate}x`,
+                            },
+                          ]
+                        : []),
+                    ].sort((a, b) => parseFloat(a.label) - parseFloat(b.label))}
                     value={playbackRate}
                     ariaLabel="Playback speed"
                     defaultLabel={`${playbackRate}x`}
-                    onClick={(value) => handleSpeedChange(value as number)}
+                    onClick={(value) => {
+                      const newPlaybackRate = Math.min(
+                        Math.max(Number(value) || 1, 0.0625),
+                        16
+                      );
+                      handleSpeedChange(newPlaybackRate);
+                    }}
                     key={playbackRate}
                   />
                 </div>

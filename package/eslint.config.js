@@ -4,6 +4,7 @@ import tsPlugin from '@typescript-eslint/eslint-plugin';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import reactRefreshPlugin from 'eslint-plugin-react-refresh';
+import globals from "globals";
 
 const config = [{
     files: ['**/*.{js,jsx,ts,tsx}'],
@@ -17,11 +18,13 @@ const config = [{
             sourceType: 'module',
             project: './tsconfig.json',
         },
-        env: {
-            browser: true,
-            node: true, 
-            es2020: true,
-        },
+        globals: Object.fromEntries(
+            Object.entries({
+                ...globals.browser,
+                ...globals.node,
+                NodeJS: 'readonly',
+            }).map(([key, value]) => [key.trim(), value])
+        ),
     },
     plugins: {
         '@typescript-eslint': tsPlugin,

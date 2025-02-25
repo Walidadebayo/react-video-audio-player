@@ -94,6 +94,12 @@ export const videoProps = [
     description: `A Boolean attribute indicating that the video is to be played "inline", that is, within the element's playback area. Note that the absence of this attribute does not imply that the video will always be played in fullscreen.`,
   },
   {
+    prop: "defaultPlaybackRate",
+    type: "number",
+    default: "undefined",
+    description: "A number indicating the default playback speed of the video when loaded. The default value is 1.0, which indicates normal speed. The value must be between 0.0625 and 16.0.",
+  },
+  {
     prop: "seekTo",
     type: "number",
     default: "0",

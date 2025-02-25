@@ -7,7 +7,7 @@ import React, {
   useRef,
   CSSProperties,
 } from "react";
-import { formatTime } from "./utils";
+import { formatTime, playbackRateOptions } from "./utils";
 import Select from "./components/Select";
 import Dropdown from "./components/Dropdown";
 import "./video-audio-player.css";
@@ -70,6 +70,7 @@ export interface VideoPlayerProps {
   className?: string;
   style?: CSSProperties;
   seekTo?: number;
+  defaultPlaybackRate?: number;
   sources?: sources;
   controlsToExclude?: VideoControlOptionsToRemove[];
   disableDoubleClick?: boolean;
@@ -113,6 +114,7 @@ const VideoPlayer = ({
   style = {},
   preload = "auto",
   seekTo,
+  defaultPlaybackRate,
   sources,
   controlsToExclude = [],
   disableDoubleClick = false,
@@ -180,15 +182,24 @@ const VideoPlayer = ({
   }, [muted]);
 
   useEffect(() => {
-    if (seekTo && videoRef.current) {
-      videoRef.current.currentTime = seekTo;
-      updateRangeBackground(
-        timelineInputRef.current,
-        seekTo,
-        videoRef.current.duration
+    if (videoRef.current && defaultPlaybackRate && duration) {
+      const newPlaybackRate = Math.min(
+        Math.max(defaultPlaybackRate || 1, 0.0625),
+        16
       );
+      setPlaybackRate(newPlaybackRate);
+      videoRef.current.playbackRate = newPlaybackRate;
+      if (onPlaybackRateChange) onPlaybackRateChange(newPlaybackRate);
     }
-  }, [seekTo]);
+  }, [defaultPlaybackRate, onPlaybackRateChange, duration]);
+
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (seekTo && videoElement && duration) {
+      videoElement.currentTime = seekTo;
+      updateRangeBackground(timelineInputRef.current, seekTo, duration);
+    }
+  }, [seekTo, duration]);
 
   const resetControlTimeout = useCallback(() => {
     if (controlTimeoutRef.current) {
@@ -237,10 +248,10 @@ const VideoPlayer = ({
 
   useEffect(() => {
     const timelineInput = timelineInputRef.current;
-    if (currentTime !== 0) {
+    if (duration) {
       updateRangeBackground(timelineInput);
     }
-  }, [currentTime, seekTo, timelineInputRef]);
+  }, [currentTime, duration]);
 
   useEffect(() => {
     const volumeInput = volumeInputRef.current;
@@ -407,13 +418,6 @@ const VideoPlayer = ({
     if (videoElement && src) {
       videoElement.src = src;
       videoElement.load();
-      // if (currentTime) {
-      //   updateRangeBackground(
-      //     timelineInputRef.current,
-      //     0,
-      //     videoElement.duration
-      //   );
-      // }
       if (videoElement.error) {
         setVideoError(true);
       } else {
@@ -477,8 +481,7 @@ const VideoPlayer = ({
 
           setAvailableTracks(trackList);
 
-          // Set default track if specified
-          const defaultTrack = trackList.find((t) => t.mode === "showing");
+          const defaultTrack = trackList.find((t) => t.mode === "showing");          
           if (defaultTrack) {
             setCurrentTrack(defaultTrack);
             if (onTrackChange) onTrackChange(defaultTrack);
@@ -1284,33 +1287,42 @@ const VideoPlayer = ({
                   </div>
                   <div className="child-controls right-controls">
                     {!controlsToExclude.includes("playbackRate") && (
-                      <div
+                        <div
                         className={`control-relative color-white ${
                           containerWidth < 180
-                            ? "hide-control"
-                            : "show-control-inline-flex"
+                          ? "hide-control"
+                          : "show-control-inline-flex"
                         }`}
-                      >
+                        >
                         <Select
                           items={[
-                            { label: "0.25x", value: 0.25 },
-                            { label: "0.5x", value: 0.5 },
-                            { label: "0.75x", value: 0.75 },
-                            { label: "1x", value: 1 },
-                            { label: "1.25x", value: 1.25 },
-                            { label: "1.5x", value: 1.5 },
-                            { label: "1.75x", value: 1.75 },
-                            { label: "2x", value: 2 },
-                          ]}
+                          ...playbackRateOptions.map((rate) => ({
+                            value: rate,
+                            label: `${rate}x`,
+                          })),
+                          ...(defaultPlaybackRate &&
+                          !playbackRateOptions.includes(defaultPlaybackRate)
+                            ? [
+                              {
+                              value: defaultPlaybackRate,
+                              label: `${defaultPlaybackRate}x`,
+                              },
+                            ]
+                            : []),
+                          ].sort((a, b) => parseFloat(a.label) - parseFloat(b.label))}
                           value={playbackRate}
                           ariaLabel="Playback speed"
                           defaultLabel={`${playbackRate}x`}
-                          onClick={(value) =>
-                            handleSpeedChange(value as number)
-                          }
+                          onClick={(value) => {
+                          const newPlaybackRate = Math.min(
+                            Math.max(Number(value) || 1, 0.0625),
+                            16
+                          );
+                          handleSpeedChange(newPlaybackRate);
+                          }}
                           key={playbackRate}
                         />
-                      </div>
+                        </div>
                     )}
                     {!ios && !controlsToExclude.includes("pip") && (
                       <button

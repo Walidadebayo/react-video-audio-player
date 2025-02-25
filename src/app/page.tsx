@@ -69,7 +69,6 @@ export default function Home() {
               <h3 className="text-2xl font-bold">Video Player</h3>
               <div className="justify-center flex">
                 <VideoPlayer
-                  seekTo={10}
                   src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
                   className="rounded-lg sm:!w-[800px] w-auto"
                   preload="auto"

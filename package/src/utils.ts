@@ -38,3 +38,5 @@ export const getYouTubeVideoId = (url: string) => {
 export const isYouTubeUrl = (url: string) => {
   return /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/.test(url);
 };
+
+export const playbackRateOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
