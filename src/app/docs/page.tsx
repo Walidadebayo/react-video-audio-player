@@ -9,8 +9,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { audioProps, videoProps } from "@/lib/utils";
-import Clipboard from "@/components/ui/clipboard";
+import CodeHighlighter from "@/components/ui/CodeHighlighter";
 import Link from "next/link";
+import { Metadata } from "next";
+export const metadata: Metadata = {
+  title: "Documentation | React Video Audio Player",
+  description:
+    "Explore the documentation for React Video Audio Player, a powerful and customisable media player for React applications.",
+  keywords:
+    "React, documentation, video player, audio player, React Video Audio Player, guide, features, API, react video audio player documentation",
+};
 
 export default function DocsPage() {
   return (
@@ -29,9 +37,9 @@ export default function DocsPage() {
             <div className="space-y-8">
               <section>
                 <h2 className="text-3xl font-bold mb-4">Video Player Props</h2>
-                <Clipboard
-                  text={`import { VideoPlayerProps, preload, VideoControlOptionsToRemove, VideoMimeType, sources } from "react-video-audio-player";`}
-                />
+                <CodeHighlighter>
+                  {`import { VideoPlayerProps, preload, VideoControlOptionsToRemove, VideoMimeType, sources } from "react-video-audio-player";`}
+                </CodeHighlighter>
                 <div className="overflow-x-auto">
                   <Table>
                     <TableCaption>Video Player Properties</TableCaption>
@@ -49,7 +57,7 @@ export default function DocsPage() {
                       {videoProps.map((prop) => (
                         <TableRow key={prop.prop} className="border-b">
                           <TableCell className="p-4">
-                            <code className="bg-muted p-1 rounded-md">
+                            <code className="bg-muted p-1 rounded-md dark:text-[#c678dd] text-[#0000ff]">
                               {prop.prop}
                             </code>
                           </TableCell>
@@ -75,8 +83,8 @@ export default function DocsPage() {
 
               <section>
                 <h2 className="text-3xl font-bold mb-4">Example Usage</h2>
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto">
-                  <code>{`import { VideoPlayer } from 'react-video-audio-player';
+                <CodeHighlighter>
+                  {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   return (
@@ -91,8 +99,8 @@ function App() {
       accentColor="#60a5fa"
     />
   );
-}`}</code>
-                </pre>
+}`}
+                </CodeHighlighter>
               </section>
 
               <section>
@@ -134,10 +142,10 @@ function App() {
             <div className="space-y-8">
               <section>
                 <h2 className="text-3xl font-bold mb-4">Audio Player Props</h2>
-                <Clipboard
-                  text={`import { AudioPlayerProps, AudioControlOptionsToRemove } from "react-video-audio-player";
+                <CodeHighlighter>
+                  {`import { AudioPlayerProps, AudioControlOptionsToRemove } from "react-video-audio-player";
 import WaveSurfer from "wavesurfer.js";`}
-                />
+                </CodeHighlighter>
                 <div className="overflow-x-auto">
                   <Table>
                     <TableCaption>Audio Player Properties</TableCaption>
@@ -155,7 +163,7 @@ import WaveSurfer from "wavesurfer.js";`}
                       {audioProps.map((prop) => (
                         <TableRow key={prop.prop} className="border-b">
                           <TableCell className="p-4">
-                            <code className="bg-muted p-1 rounded-md">
+                            <code className="bg-muted p-1 rounded-md dark:text-[#c678dd] text-[#0000ff]">
                               {prop.prop}
                             </code>
                           </TableCell>
@@ -181,8 +189,8 @@ import WaveSurfer from "wavesurfer.js";`}
 
               <section>
                 <h2 className="text-3xl font-bold mb-4">Example Usage</h2>
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto">
-                  <code>{`import { AudioPlayer } from 'react-video-audio-player';
+                <CodeHighlighter>
+                  {`import { AudioPlayer } from 'react-video-audio-player';
 
 function App() {
   return (
@@ -196,8 +204,8 @@ function App() {
       accentColor="#60a5fa"
     />
   );
-}`}</code>
-                </pre>
+}`}
+                </CodeHighlighter>
               </section>
 
               <section>
@@ -233,7 +241,7 @@ function App() {
                 </h2>
                 <p>
                   The audio player uses WaveSurfer.js for waveform
-                  visualization. For more information about WaveSurfer and its
+                  visualisation. For more information about WaveSurfer and its
                   features, visit the{" "}
                   <Link
                     href="https://wavesurfer.xyz/docs/classes/wavesurfer.default"
@@ -254,117 +262,61 @@ function App() {
               <section>
                 <div>
                   <h2 className="text-3xl font-bold mb-4">Utility Functions</h2>
-                  <Clipboard
-                    text={`import { formatTime } from 'react-video-audio-player';
+                  <CodeHighlighter>
+                    {`import { formatTime } from 'react-video-audio-player';
 
 // Format seconds to HH:MM:SS or MM:SS
 const time = formatTime(125); // "2:05"
 const longTime = formatTime(3661); // "1:01:01"`}
-                  />
-                </div>
-
-                <div>
-                  <h3 className="text-2xl font-bold my-4">
-                    Standalone Version Usage
-                  </h3>
-                  <Clipboard
-                    text={`<!-- Standalone Version (no React required) -->
-<div id="video-player"></div>
-<div id="audio-player"></div>
-
-<script src="https://unpkg.com/react-video-audio-player@latest/dist/index.standalone.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/react-video-audio-player@latest/dist/video-audio-player.css">
-
-<script>
-// Initialize the VideoPlayer
-const videoPlayerContainer = document.getElementById('video-player-container');
-const videoPlayer = VideoPlayer({
-    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-    controls: true,
-    autoPlay: false,
-    muted: false,
-    loop: false,
-    poster: 'https://i.ibb.co/W45zMcvj/Sintel-krafy-resized-Viz-Xpress.jpg',
-    onReady: () => {
-        console.log('Video is ready to play');
-    },
-});
-videoPlayerContainer.appendChild(videoPlayer);
-
-// Initialize the AudioPlayer
-const audioPlayerContainer = document.getElementById('audio-player-container');
-const audioPlayer = AudioPlayer({
-    src: 'https://cdn.pixabay.com/audio/2024/11/11/audio_889cf15c3c.mp3',
-    controls: true,
-    autoPlay: false,
-    muted: false,
-    loop: false,
-    onReady: () => {
-        console.log('Audio is ready to play');
-    },
-});
-audioPlayerContainer.appendChild(audioPlayer);
-</script>`}
-                  />
+                  </CodeHighlighter>
                 </div>
 
                 <div>
                   <h3 className="text-2xl font-bold my-4">CDN Usage</h3>
-                  <Clipboard
-                    text={`<!-- UMD Version -->
+                  <CodeHighlighter language="html">
+                    {`
 <div id="video-player-container"></div>
 <div id="audio-player-container"></div>
 
 <!-- UMD -->
-<script src="https://unpkg.com/react-video-audio-player@latest/dist/index.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.0/dist/index.umd.min.js"></script>
 <link
   rel="stylesheet"
-  href="https://unpkg.com/react-video-audio-player@latest/dist/video-audio-player.css"
+  href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.0/dist/video-audio-player.min.css"
 />
 
-<!-- React -->
-<script src="https://unpkg.com/react@latest/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@latest/umd/react-dom.production.min.js"></script>
-
 <script>
-  const { VideoPlayer, AudioPlayer } = ReactVideoAudioPlayer;
-
-  const videoProps = {
-    src: "video.mp4",
+  // Initialise the VideoPlayer
+  const videoPlayerContainer = document.getElementById('video-player-container');
+  const videoPlayer = VideoPlayer({
+    src: 'video.mp4',
     controls: true,
     autoPlay: false,
     muted: false,
     loop: false,
-    poster: "poster.jpg",
+    poster: 'poster.jpg',
     onReady: () => {
-      console.log("Video is ready to play");
+      console.log('Video is ready to play');
     },
-  };
-  const VideoComponent = () => React.createElement(VideoPlayer, videoProps);
-  ReactDOM.render(
-    React.createElement(VideoComponent),
-    document.getElementById("video-player-container")
-  );
+  });
+  videoPlayerContainer.appendChild(videoPlayer);
 
-  const audioProps = {
-    src: "audio.mp3",
+  // Initialise the AudioPlayer
+  const audioPlayerContainer = document.getElementById('audio-player-container');
+  const audioPlayer = AudioPlayer({
+    src: 'audio.mp3',
     controls: true,
     autoPlay: false,
     muted: false,
     loop: false,
     onReady: () => {
-      console.log("Audio is ready to play");
+      console.log('Audio is ready to play');
     },
-  };
-  const AudioComponent = () => React.createElement(AudioPlayer, audioProps);
-  ReactDOM.render(
-    React.createElement(AudioComponent),
-    document.getElementById("audio-player-container")
-  );
+  });
+  audioPlayerContainer.appendChild(audioPlayer);
 </script>`}
-                  />
+                  </CodeHighlighter>
                 </div>
-
 
                 <h2 className="text-3xl font-bold my-4">Callback Examples</h2>
 
@@ -373,8 +325,8 @@ audioPlayerContainer.appendChild(audioPlayer);
                     <h3 className="text-2xl font-bold mb-4">
                       Progress Tracking
                     </h3>
-                    <Clipboard
-                      text={`import { VideoPlayer } from 'react-video-audio-player';
+                    <CodeHighlighter>
+                      {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handleProgress = (currentTime: number, duration: number) => {
@@ -389,15 +341,15 @@ function App() {
     />
   );
 }`}
-                    />
+                    </CodeHighlighter>
                   </div>
 
                   <div>
                     <h3 className="text-2xl font-bold mb-4">
                       Player State Management
                     </h3>
-                    <Clipboard
-                      text={`import { useState } from 'react';
+                    <CodeHighlighter>
+                      {`import { useState } from 'react';
 import { AudioPlayer } from 'react-video-audio-player';
 
 function App() {
@@ -417,13 +369,13 @@ function App() {
     />
   );
 }`}
-                    />
+                    </CodeHighlighter>
                   </div>
 
                   <div>
                     <h3 className="text-2xl font-bold mb-4">Error Handling</h3>
-                    <Clipboard
-                      text={`import { VideoPlayer } from 'react-video-audio-player';
+                    <CodeHighlighter>
+                      {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handleError = () => {
@@ -439,15 +391,15 @@ function App() {
     />
   );
 }`}
-                    />
+                    </CodeHighlighter>
                   </div>
 
                   <div>
                     <h3 className="text-2xl font-bold mb-4">
                       Player References
                     </h3>
-                    <Clipboard
-                      text={`import { useRef } from 'react';
+                    <CodeHighlighter>
+                      {`import { useRef } from 'react';
 import { VideoPlayer, AudioPlayer } from 'react-video-audio-player';
 
 function App() {
@@ -488,13 +440,13 @@ function App() {
     </div>
   );
 }`}
-                    />
+                    </CodeHighlighter>
                   </div>
 
                   <div>
                     <h3 className="text-2xl font-bold mb-4">Seeked Callback</h3>
-                    <Clipboard
-                      text={`import { VideoPlayer } from 'react-video-audio-player';
+                    <CodeHighlighter>
+                      {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handleSeeked = (time: number) => {
@@ -508,13 +460,13 @@ function App() {
     />
   );
 }`}
-                    />
+                    </CodeHighlighter>
                   </div>
 
                   <div>
                     <h3 className="text-2xl font-bold mb-4">Ready Callback</h3>
-                    <Clipboard
-                      text={`import { VideoPlayer } from 'react-video-audio-player';
+                    <CodeHighlighter>
+                      {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handleReady = () => {
@@ -528,15 +480,15 @@ function App() {
     />
   );
 }`}
-                    />
+                    </CodeHighlighter>
                   </div>
 
                   <div>
                     <h3 className="text-2xl font-bold mb-4">
                       Duration Callback
                     </h3>
-                    <Clipboard
-                      text={`import { VideoPlayer } from 'react-video-audio-player';
+                    <CodeHighlighter>
+                      {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handleDuration = (duration: number) => {
@@ -550,13 +502,13 @@ function App() {
     />
   );
 }`}
-                    />
+                    </CodeHighlighter>
                   </div>
 
                   <div>
                     <h3 className="text-2xl font-bold mb-4">Play Callback</h3>
-                    <Clipboard
-                      text={`import { VideoPlayer } from 'react-video-audio-player';
+                    <CodeHighlighter>
+                      {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handlePlay = () => {
@@ -570,13 +522,13 @@ function App() {
     />
   );
 }`}
-                    />
+                    </CodeHighlighter>
                   </div>
 
                   <div>
                     <h3 className="text-2xl font-bold mb-4">Pause Callback</h3>
-                    <Clipboard
-                      text={`import { VideoPlayer } from 'react-video-audio-player';
+                    <CodeHighlighter>
+                      {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handlePause = () => {
@@ -590,13 +542,13 @@ function App() {
     />
   );
 }`}
-                    />
+                    </CodeHighlighter>
                   </div>
 
                   <div>
                     <h3 className="text-2xl font-bold mb-4">Ended Callback</h3>
-                    <Clipboard
-                      text={`import { VideoPlayer } from 'react-video-audio-player';
+                    <CodeHighlighter>
+                      {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handleEnded = () => {
@@ -610,7 +562,7 @@ function App() {
     />
   );
 }`}
-                    />
+                    </CodeHighlighter>
                   </div>
                 </div>
               </section>

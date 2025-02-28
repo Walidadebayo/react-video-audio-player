@@ -160,7 +160,7 @@
 }
 
 .video-player-wrapper .all-controls-bottom .buttons {
-  @apply text-lg text-white p-1 rounded;
+  @apply text-lg text-white p-0.5 rounded;
 }
 
 .video-player-wrapper .all-controls-bottom .current-time-duration {
@@ -188,7 +188,7 @@
 }
 
 .audio-player-wrapper .current-time-duration {
-  @apply text-gray-700 dark:text-gray-100 inline-flex gap-1;
+  @apply text-gray-700 dark:text-gray-100 inline-flex gap-1 px-2 py-1 rounded;
 }
 
 .audio-player-wrapper .mute-button {
@@ -294,6 +294,10 @@
 
 .timeline-tooltip {
   @apply absolute text-white text-xs px-2 py-1 rounded whitespace-nowrap pointer-events-none -top-4 -left-1/2 -translate-x-1/2 after:absolute after:-bottom-2 after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-l-transparent after:border-r-transparent after:border-b-transparent after:border-[var(--accent-color)];
+}
+
+.timeline-tooltip-thumbnail {
+  @apply max-w-40  border-2 rounded-md object-cover absolute -top-20 left-1/2 -translate-x-1/2;
 }
 
 .color-white {

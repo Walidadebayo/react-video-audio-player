@@ -26,6 +26,24 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function DemoPage() {
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.title = "Interactive Demo | React Video Audio Player";
+      document
+        .querySelector("meta[name='description']")
+        ?.setAttribute(
+          "content",
+          "Interactive demo of React Video Audio Player, showcasing features and configurations."
+        );
+      document
+        .querySelector("meta[name='keywords']")
+        ?.setAttribute(
+          "content",
+          "React, demo, video player, audio player, interactive demo, React Video Audio Player, features, configurations, React Video Audio Player demo, React media player demo, React AV player demo"
+        );
+    }
+  }, []);
+
   const [videoControlsToExclude, setVideoControlsToExclude] = useState<
     VideoControlOptionsToRemove[]
   >([]);
@@ -74,28 +92,28 @@ export default function DemoPage() {
     tracks: [
       {
         src: "https://durian.blender.org/wp-content/content/subtitles/sintel_en.srt",
-        kind: "subtitles",
+        kind: "captions",
         label: "English",
         srclang: "en",
         default: true,
       },
       {
         src: "https://durian.blender.org/wp-content/content/subtitles/sintel_es.srt",
-        kind: "subtitles",
+        kind: "captions",
         label: "Spanish",
         srclang: "es",
         default: false,
       },
       {
         src: "https://durian.blender.org/wp-content/content/subtitles/sintel_de.srt",
-        kind: "subtitles",
+        kind: "captions",
         label: "German",
         srclang: "de",
         default: false,
       },
       {
         src: "https://durian.blender.org/wp-content/content/subtitles/sintel_fr.srt",
-        kind: "subtitles",
+        kind: "captions",
         label: "French",
         srclang: "fr",
         default: false,
@@ -343,11 +361,7 @@ export default function DemoPage() {
           <h2 className="text-3xl font-bold mb-6">Audio Player</h2>
           <div className="grid gap-8 lg:grid-cols-2">
             <div>
-              <AudioPlayer
-                {...audioConfig}
-                width="100%"
-                onVolumeChange={(time) => console.log(time)}
-              />
+              <AudioPlayer {...audioConfig} width="100%" />
             </div>
             <div className="space-y-6">
               <div>

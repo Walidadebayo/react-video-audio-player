@@ -1,4 +1,13 @@
-import Clipboard from "@/components/ui/clipboard";
+import CodeHighlighter from "@/components/ui/CodeHighlighter";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Installation | React Video Audio Player",
+  description:
+    "Learn how to install and set up React Video Audio Player in your project. Follow our step-by-step guide for easy integration.",
+  keywords:
+    "React, installation, setup, video player, audio player, React Video Audio Player, guide, integration",
+};
 
 export default function InstallationPage() {
   return (
@@ -9,17 +18,23 @@ export default function InstallationPage() {
         <section className="space-y-6">
           <div>
             <h2 className="text-3xl font-bold mb-4">NPM</h2>
-            <Clipboard text="npm install react-video-audio-player" />
+            <CodeHighlighter language="haskell" showLineNumbers={false}>
+              npm install react-video-audio-player
+            </CodeHighlighter>
           </div>
 
           <div>
             <h2 className="text-3xl font-bold mb-4">Yarn</h2>
-            <Clipboard text="yarn add react-video-audio-player" />
+            <CodeHighlighter language="haskell" showLineNumbers={false}>
+              yarn add react-video-audio-player
+            </CodeHighlighter>
           </div>
 
           <div>
             <h2 className="text-3xl font-bold mb-4">pnpm</h2>
-            <Clipboard text="pnpm add react-video-audio-player" />
+            <CodeHighlighter language="bash" showLineNumbers={false}>
+              pnpm add react-video-audio-player
+            </CodeHighlighter>
           </div>
 
           <div>
@@ -27,19 +42,11 @@ export default function InstallationPage() {
             <p className="mb-4">
               You can also include the package directly via CDN:
             </p>
-            <h3 className="text-xl font-bold mb-2">
-              UMD Version (Requires React)
-            </h3>
-            <Clipboard
-              text={`<script src="https://unpkg.com/react-video-audio-player@latest/dist/index.umd.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/react-video-audio-player@latest/dist/video-audio-player.css">`}
-            />
-
-            <h3 className="text-xl font-bold mb-2 mt-4">Standalone Version</h3>
-            <Clipboard
-              text={`<script src="https://unpkg.com/react-video-audio-player@latest/dist/index.standalone.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/react-video-audio-player@latest/dist/video-audio-player.css">`}
-            />
+            <CodeHighlighter language="html" showLineNumbers={false}>
+              {`<!-- UMD -->
+<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.0/dist/index.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.0/dist/video-audio-player.min.css" />`}
+            </CodeHighlighter>
           </div>
         </section>
 
@@ -48,39 +55,31 @@ export default function InstallationPage() {
           <div className="space-y-6">
             <div>
               <h3 className="text-2xl font-bold mb-4">Video Player</h3>
-              <pre className="bg-muted p-4 rounded-lg overflow-x-auto">
-                <code>
-                  {`import { VideoPlayer } from 'react-video-audio-player';
+              <CodeHighlighter>
+                {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   return (
     <VideoPlayer src="video.mp4" />
   );
+}`}
+              </CodeHighlighter>
+              <h4 className="text-xl font-bold mt-6 mb-4">UMD Version</h4>
+              <CodeHighlighter language="html">
+                {`<div id="video-player-container"></div>
+<div id="audio-player-container"></div>
 
-// UDM Version
-const { VideoPlayer } = ReactVideoAudioPlayer;
-  const videoProps = {
-  src: "video.mp4",
-  controls: true,
-  autoPlay: false,
-  muted: false,
-  loop: false,
-  poster: "poster.jpg",
-  onReady: () => {
-    console.log("Video is ready to play");
-  },
-};
+<!-- UMD -->
+<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.0/dist/index.umd.min.js"></script>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.0/dist/video-audio-player.min.css"
+/>
 
-const VideoComponent = () => React.createElement(VideoPlayer, videoProps);
-ReactDOM.render(
-  React.createElement(VideoComponent),
-  document.getElementById("video-player-container")
-);
-
-// Standalone Version
-
-const videoPlayerContainer = document.getElementById('video-player-container');
-const videoPlayer = VideoPlayer({
+<script>
+  // Initialise the VideoPlayer
+  const videoPlayerContainer = document.getElementById('video-player-container');
+  const videoPlayer = VideoPlayer({
     src: 'video.mp4',
     controls: true,
     autoPlay: false,
@@ -88,58 +87,53 @@ const videoPlayer = VideoPlayer({
     loop: false,
     poster: 'poster.jpg',
     onReady: () => {
-        console.log('Video is ready to play');
+      console.log('Video is ready to play');
     },
-});
-videoPlayerContainer.appendChild(videoPlayer);
-}`}
-                </code>
-              </pre>
+  });
+  videoPlayerContainer.appendChild(videoPlayer);
+</script>`}
+              </CodeHighlighter>
             </div>
 
             <div>
               <h3 className="text-2xl font-bold mb-4">Audio Player</h3>
-              <pre className="bg-muted p-4 rounded-lg overflow-x-auto">
-                <code>{`import { AudioPlayer } from 'react-video-audio-player';
+              <CodeHighlighter>
+                {`import { AudioPlayer } from 'react-video-audio-player';
 
 function App() {
   return (
-    <AudioPlayer src="audio.mp3"  />
-    );
-    }
-    
-// UDM Version
-const { AudioPlayer } = ReactVideoAudioPlayer;
-const audioProps = {
-src: "audio.mp3",
-controls: true,
-autoPlay: false,
-muted: false,
-loop: false,
-onReady: () => {
-console.log("Audio is ready to play");
-}
-};
-const AudioComponent = () => React.createElement(AudioPlayer, audioProps);
-ReactDOM.render(
-React.createElement(AudioComponent),
-document.getElementById("audio-player-container")
-);
+    <AudioPlayer src="audio.mp3" />
+  );
+}`}
+              </CodeHighlighter>
+              <h4 className="text-xl font-bold mt-6 mb-4">UMD Version</h4>
+              <CodeHighlighter language="html">
+                {`<div id="video-player-container"></div>
+<div id="audio-player-container"></div>
 
-const audioPlayerContainer = document.getElementById('audio-player-container');
-const audioPlayer = AudioPlayer({
-    src: 'https://cdn.pixabay.com/audio/2024/11/11/audio_889cf15c3c.mp3',
+<!-- UMD -->
+<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.0/dist/index.umd.min.js"></script>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.0/dist/video-audio-player.min.css"
+/>
+
+<script>
+  // Initialise the AudioPlayer
+  const audioPlayerContainer = document.getElementById('audio-player-container');
+  const audioPlayer = AudioPlayer({
+    src: 'audio.mp3',
     controls: true,
     autoPlay: false,
     muted: false,
     loop: false,
     onReady: () => {
-        console.log('Audio is ready to play');
+      console.log('Audio is ready to play');
     },
-});
-audioPlayerContainer.appendChild(audioPlayer);
-`}</code>
-              </pre>
+  });
+  audioPlayerContainer.appendChild(audioPlayer);
+</script>`}
+              </CodeHighlighter>
             </div>
           </div>
         </section>

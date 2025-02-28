@@ -4,10 +4,11 @@ export const formatTime = (seconds: number) => {
   const hrs = Math.floor(absSeconds / 3600);
   const mins = Math.floor((absSeconds % 3600) / 60);
   const secs = Math.floor(absSeconds % 60);
-  const formattedTime = hrs === 0 
-    ? `${mins}:${String(secs).padStart(2, "0")}` 
+  const formattedTime = hrs === 0
+    ? `${mins}:${String(secs).padStart(2, "0")}`
     : `${hrs}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-  return isNegative ? `-${formattedTime}` : formattedTime;
+  return isNegative && formattedTime !== "0:00"
+    ? `-${formattedTime}` : formattedTime;
 };
 
 export const updateRangeBackground = (

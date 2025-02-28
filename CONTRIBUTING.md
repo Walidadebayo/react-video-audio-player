@@ -7,7 +7,7 @@ We welcome contributions to the React Video and Audio Player project! By contrib
 
 ### Reporting Bugs
 
-If you find a bug, please report it by opening an issue on the [GitHub repository](https://github.com/Walidadebayo/react-video-audio-player/issues). Include as much detail as possible, including steps to reproduce the bug, the expected behavior, and any relevant screenshots or code snippets.
+If you find a bug, please report it by opening an issue on the [GitHub repository](https://github.com/Walidadebayo/react-video-audio-player/issues). Include as much detail as possible, including steps to reproduce the bug, the expected behaviour, and any relevant screenshots or code snippets.
 
 ### Suggesting Features
 

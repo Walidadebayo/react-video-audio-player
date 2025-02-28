@@ -8,8 +8,8 @@ import React, {
   CSSProperties,
 } from "react";
 import WaveSurfer from "wavesurfer.js";
-import { formatTime, playbackRateOptions } from "./utils";
-import { updateRangeBackground } from "./utils";
+import { formatTime, playbackRateOptions } from "./lib/utils";
+import { updateRangeBackground } from "./lib/utils";
 import Select from "./components/Select";
 import "./video-audio-player.css";
 
@@ -37,6 +37,7 @@ export interface AudioPlayerProps {
   disableShortcuts?: boolean;
   showDownloadButton?: boolean;
   defaultPlaybackRate?: number;
+  defaultVolume?: number;
   onProgress?: (currentTime: number, duration: number) => void;
   onSeeked?: (time: number) => void;
   onDownloadStart?: () => void;
@@ -70,6 +71,7 @@ const AudioPlayer = ({
   showDownloadButton = false,
   disableShortcuts = false,
   defaultPlaybackRate,
+  defaultVolume = 1,
   onProgress,
   onSeeked,
   onDownloadStart,
@@ -89,7 +91,7 @@ const AudioPlayer = ({
   const waveformRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [volume, setVolume] = useState(1);
+  const [volume, setVolume] = useState(defaultVolume);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [audioError, setAudioError] = useState(false);
@@ -100,13 +102,14 @@ const AudioPlayer = ({
   const volumeInputRef = useRef<HTMLInputElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [reload, setReload] = useState(false);
+  const [reverseCurrentTime, setReverseCurrentTime] = useState(false);
 
   useEffect(() => {
     if (waveSurfer.current) {
       setIsMuted(muted);
-      setVolume(muted ? 0 : 1);
+      setVolume(muted ? 0 : defaultVolume);
     }
-  }, [muted, waveSurfer]);
+  }, [muted, waveSurfer, defaultVolume]);
 
   useEffect(() => {
     setTimeout(() => {
@@ -123,9 +126,21 @@ const AudioPlayer = ({
   }, [defaultPlaybackRate, duration, onPlaybackRateChange]);
 
   useEffect(() => {
-    const volumeInput = volumeInputRef.current;
-    updateRangeBackground(volumeInput);
-  }, [volume]);
+    if (waveSurfer.current) {
+      const volumeInput = volumeInputRef.current;
+      updateRangeBackground(volumeInput);
+      const newVolume = Math.min(Math.max(volume || 0, 0), 1);
+      waveSurfer.current.setVolume(newVolume);
+      if (onVolumeChange) onVolumeChange(newVolume);
+      if (newVolume === 0) {
+        setIsMuted(true);
+        if (onMuteChange) onMuteChange(true);
+      } else {
+        setIsMuted(false);
+        if (onMuteChange) onMuteChange(false);
+      }
+    }
+  }, [volume, onVolumeChange, onMuteChange]);
 
   useEffect(() => {
     const audioContainer = audioContainerRef.current;
@@ -168,14 +183,27 @@ const AudioPlayer = ({
   useEffect(() => {
     if (disableShortcuts) return;
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.tagName === "BUTTON" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
       if (waveSurfer.current) {
         switch (e.key) {
           case "ArrowRight":
+            e.preventDefault();
             waveSurfer.current.setTime(
               waveSurfer.current.getCurrentTime() + 10
             );
             break;
           case "ArrowLeft":
+            e.preventDefault();
             waveSurfer.current.setTime(
               waveSurfer.current.getCurrentTime() - 10
             );
@@ -207,10 +235,13 @@ const AudioPlayer = ({
             waveSurfer.current.playPause();
             break;
           case "m":
+          case "M":
             e.preventDefault();
             toggleMute();
             break;
-          case "s": {
+          case "s":
+          case "S": {
+            e.preventDefault();
             const speedRate =
               playbackRate === 1
                 ? 1.25
@@ -400,20 +431,19 @@ const AudioPlayer = ({
   };
 
   useEffect(() => {
-    const wavesurfer = waveSurfer.current;
-    if (wavesurfer) {
-      const handleProgress = () => {
-        const currentTime = waveSurfer.current?.getCurrentTime() || 0;
-        setCurrentTime(currentTime);
-        if (onProgress) {
-          onProgress(currentTime, duration);
-        }
-      };
-      wavesurfer.on("audioprocess", handleProgress);
-      return () => {
-        wavesurfer.un("audioprocess", handleProgress);
-      };
-    }
+    const handleProgress = () => {
+      const currentTime = waveSurfer.current?.getCurrentTime() || 0;
+      setCurrentTime(currentTime);
+      if (onProgress) {
+        onProgress(currentTime, duration);
+      }
+    };
+    waveSurfer.current?.on("audioprocess", handleProgress);
+    return () => {
+      if (waveSurfer.current) {
+        waveSurfer.current.un("audioprocess", handleProgress);
+      }
+    };
   }, [onProgress, duration]);
 
   useEffect(() => {
@@ -430,17 +460,7 @@ const AudioPlayer = ({
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
-    if (newVolume === 0) {
-      setIsMuted(true);
-      if (onMuteChange) onMuteChange(true);
-    } else {
-      setIsMuted(false);
-      if (onMuteChange) onMuteChange(false);
-    }
     setVolume(newVolume);
-    if (waveSurfer.current) {
-      waveSurfer.current.setVolume(newVolume);
-    }
   };
 
   const handleDownloadClick = async () => {
@@ -543,7 +563,13 @@ const AudioPlayer = ({
                   )}
                 </button>
               )}
-              <button className="current-time-duration accent-color-hover">
+              <button
+                className="current-time-duration accent-color-hover"
+                onClick={() => {
+                  setReverseCurrentTime(!reverseCurrentTime);
+                }}
+                aria-label="Current time and duration"
+              >
                 {!controlsToExclude.includes("current-time") && (
                   <span
                     className={`${
@@ -552,7 +578,9 @@ const AudioPlayer = ({
                         : "show-control-inline-flex"
                     }`}
                   >
-                    {formatTime(currentTime)} {}
+                    {reverseCurrentTime
+                      ? formatTime(currentTime - duration)
+                      : formatTime(currentTime)}
                   </span>
                 )}
                 {!controlsToExclude.includes("duration") &&
@@ -585,7 +613,7 @@ const AudioPlayer = ({
           <div
             ref={waveformRef}
             className="waveform"
-            style={{ width: "100%", height: "100%" }}
+            style={{ width: "100%", height: "100%", cursor: "pointer" }}
             aria-label="Audio waveform"
           />
 
@@ -679,7 +707,7 @@ const AudioPlayer = ({
                   max="1"
                   step="any"
                   value={isMuted ? 0 : volume}
-                  onChange={(e) => handleVolumeChange(e)}
+                  onChange={handleVolumeChange}
                   ref={volumeInputRef}
                   className={`volume-slider accent-color-input ${
                     containerWidth < 400 ? "hide-control" : "show-control"

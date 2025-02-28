@@ -16,6 +16,13 @@ export const formatTime = (seconds: number) => {
   )}`;
 };
 
+export const navigation = [
+  { name: "Home", href: "/" },
+  { name: "Docs", href: "/docs" },
+  { name: "Demo", href: "/demo" },
+  { name: "Installation", href: "/installation" },
+];
+
 export const videoProps = [
   {
     prop: "src",
@@ -30,6 +37,12 @@ export const videoProps = [
     description: "An array of objects containing the URL and type of the video to embed. This is optional; you may instead use the <b>src</b> property to specify the URL of the video.",
   },
   {
+    prop: "accentColor",
+    type: "string",
+    default: '"#60a5fa"',
+    description: "The accent color to use for the player controls",
+  },
+  {
     prop: "tracks",
     type: "Array<{ src: string; kind: string; label: string; srclang: string; default?: boolean }>",
     default: "[]",
@@ -42,15 +55,15 @@ export const videoProps = [
     description: "A URL for an image to be shown while the video is downloading. If this attribute isn't specified, nothing is displayed until the first frame is available, then the first frame is shown as the poster frame.",
   },
   {
-    prop: "accentColor",
-    type: "string",
-    default: '"#60a5fa"',
-    description: "The accent color to use for the player controls",
+    prop: "generatePosterAt",
+    type: "number",
+    default: "undefined",
+    description: "A number representing the time in seconds to generate a poster for the video. If not provided, a poster will be generated at half the video duration.",
   },
   {
     prop: "preload",
     type: '"auto" | "metadata" | "none" | ""',
-    default: '"auto"',
+    default: '"metadata"',
     description: `This enumerated attribute is intended to provide a hint to the video player about what the author thinks will lead to the best user experience regarding what content is loaded before the video is played. It may have one of the following values:
         <br />
         - <b>none</b>: Indicates that the video should not be preloaded.
@@ -61,7 +74,7 @@ export const videoProps = [
         <br />
         - <b>empty string</b>: A synonym of the auto value.
         <br />
-        The spec advises it to be set to metadata.`,
+        The spec advises it to be set to metadata but if the video is streamed, auto is a better choice.`,
   },
   {
     prop: "controls",
@@ -98,6 +111,12 @@ export const videoProps = [
     type: "number",
     default: "undefined",
     description: "A number indicating the default playback speed of the video when loaded. The default value is 1.0, which indicates normal speed. The value must be between 0.0625 and 16.0.",
+  },
+  {
+    prop: "defaultVolume",
+    type: "number",
+    default: "1",
+    description: "A number indicating the default volume of the video when loaded. The default value is 1.0, which indicates normal volume. The value must be between 0 and 1.",
   },
   {
     prop: "seekTo",
@@ -291,7 +310,6 @@ export const videoProps = [
     Learn more about the <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement" class="underline" target="_blank" rel="noopener noreferrer">HTMLMediaElement</a> interface.
         `,
   },
-
 ];
 
 export const audioProps = [

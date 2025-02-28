@@ -1,7 +1,7 @@
 {
   "name": "react-video-audio-player",
-  "version": "1.2.0",
-  "description": "React Video Audio Player is a lightweight, customizable React video player and React audio player that supports video, audio, and streaming playback. Perfect for building modern media applications.",
+  "version": "1.3.0",
+  "description": "React Video Audio Player is a lightweight, customisable React video player and React audio player that supports video, audio, and streaming playback. Perfect for building modern media applications.",
   "license": "MIT",
   "author": {
     "name": "Walid Adebayo",
@@ -10,7 +10,6 @@
   },
   "type": "module",
   "main": "dist/index.js",
-  "browser": "dist/index.umd.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist",

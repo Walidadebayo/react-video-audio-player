@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Menu, X, Github } from "lucide-react";
 import Image from "next/image";
+import { MobileNavLinks, NavLinks } from "./nav-links";
 
 const ThemeToggle = () => {
   const { theme, setTheme } = useTheme();
@@ -35,12 +36,6 @@ const ThemeToggle = () => {
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const navigation = [
-    { name: "Home", href: "/" },
-    { name: "Docs", href: "/docs" },
-    { name: "Demo", href: "/demo" },
-    { name: "Installation", href: "/installation" },
-  ];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -56,22 +51,14 @@ const Header = () => {
                 className="w-10 h-10"
               />
               <span className="text-xl font-bold hidden xs:block">
-                React VA Player
+                React AV Player
               </span>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex md:items-center md:space-x-6">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="text-sm font-medium transition-colors hover:text-primary"
-              >
-                {item.name}
-              </Link>
-            ))}
+            <NavLinks />
           </div>
           <div className="justify-end hidden md:flex md:items-center md:gap-6">
             <Link
@@ -146,16 +133,7 @@ const Header = () => {
         {isMenuOpen && (
           <div className="md:hidden">
             <div className="space-y-1 pb-3 pt-2">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              ))}
+              <MobileNavLinks onClick={() => setIsMenuOpen(false)} />
               <Link
                 href="https://github.com/Walidadebayo/react-video-audio-player"
                 target="_blank"

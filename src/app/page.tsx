@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { VideoPlayer, AudioPlayer } from "@/package/src";
-import Clipboard from "@/components/ui/clipboard";
+import { LucideNotebookTabs } from "lucide-react";
+import CodeHighlighter from "@/components/ui/CodeHighlighter";
 
 export default function Home() {
   return (
@@ -12,7 +13,7 @@ export default function Home() {
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="space-y-2">
               <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl">
-                A Powerful & Customizable React Video & Audio Player
+                A Powerful & Customisable React Video & Audio Player
               </h1>
               <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
                 Beautiful, responsive, and feature-rich media player components
@@ -38,7 +39,10 @@ export default function Home() {
             </div>
             <div className="gap-4 flex max-xs:flex-col items-center flex-row">
               <Button asChild>
-                <Link href="/docs">Get Started</Link>
+                <Link href="/docs">
+                  <LucideNotebookTabs className="w-4 h-4 mr-2" />
+                  Documentation
+                </Link>
               </Button>
               <Button variant="outline" asChild>
                 <Link
@@ -50,10 +54,52 @@ export default function Home() {
                 </Link>
               </Button>
               <Button variant="secondary" asChild>
-                <Link href="/installation#cdn">Use CDN</Link>
+                <Link href="https://www.jsdelivr.com/package/npm/react-video-audio-player">
+                  Use CDN
+                </Link>
               </Button>
             </div>
-            <Clipboard />
+            <CodeHighlighter language="haskell" showLineNumbers={false}>
+              npm install react-video-audio-player
+            </CodeHighlighter>
+          </div>
+        </div>
+      </section>
+
+      {/* Why Use Section */}
+      <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">
+        <div className="container px-4 md:px-6">
+          <h2 className="text-3xl font-bold tracking-tighter text-center mb-12">
+            Why Use React Video Audio Player?
+          </h2>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="flex flex-col items-center space-y-2 p-6 bg-background rounded-lg shadow-sm">
+              <h3 className="text-xl font-bold">Ease of Integration</h3>
+              <p className="text-center text-muted-foreground">
+                Seamlessly integrate with your existing React applications with
+                minimal setup.
+              </p>
+            </div>
+            <div className="flex flex-col items-center space-y-2 p-6 bg-background rounded-lg shadow-sm">
+              <h3 className="text-xl font-bold">Highly Customizable</h3>
+              <p className="text-center text-muted-foreground">
+                Customize the player to match your application&#39;s design and
+                functionality requirements.
+              </p>
+            </div>
+            <div className="flex flex-col items-center space-y-2 p-6 bg-background rounded-lg shadow-sm">
+              <h3 className="text-xl font-bold">Feature-Rich</h3>
+              <p className="text-center text-muted-foreground">
+                Packed with features like subtitle support, multiple formats,
+                and keyboard shortcuts.
+              </p>
+            </div>
+            <div className="flex flex-col items-center space-y-2 p-6 bg-background rounded-lg shadow-sm">
+              <h3 className="text-xl font-bold">Automatic Poster Generation</h3>
+              <p className="text-center text-muted-foreground">
+                Automatically generate a poster for your video at a specified time or at half the video duration.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -72,7 +118,6 @@ export default function Home() {
                   src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
                   className="rounded-lg sm:!w-[800px] w-auto"
                   preload="auto"
-                  poster="https://i.ibb.co/W45zMcvj/Sintel-krafy-resized-Viz-Xpress.jpg"
                   tracks={[
                     {
                       src: "https://durian.blender.org/wp-content/content/subtitles/sintel_en.srt",
@@ -122,7 +167,7 @@ export default function Home() {
           </h2>
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             <div className="flex flex-col items-center space-y-2 p-6 bg-background rounded-lg shadow-sm">
-              <h3 className="text-xl font-bold">Customizable Themes</h3>
+              <h3 className="text-xl font-bold">Customisable Themes</h3>
               <p className="text-center text-muted-foreground">
                 Easily change the appearance of the player to match your
                 application&#39;s design.

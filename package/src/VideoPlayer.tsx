@@ -7,11 +7,11 @@ import React, {
   useRef,
   CSSProperties,
 } from "react";
-import { formatTime, playbackRateOptions } from "./utils";
+import { formatTime, playbackRateOptions } from "./lib/utils";
 import Select from "./components/Select";
 import Dropdown from "./components/Dropdown";
 import "./video-audio-player.css";
-import { updateRangeBackground } from "./utils";
+import { updateRangeBackground } from "./lib/utils";
 
 export type preload = "auto" | "metadata" | "none" | "";
 export type VideoControlOptionsToRemove =
@@ -71,6 +71,7 @@ export interface VideoPlayerProps {
   style?: CSSProperties;
   seekTo?: number;
   defaultPlaybackRate?: number;
+  defaultVolume?: number;
   sources?: sources;
   controlsToExclude?: VideoControlOptionsToRemove[];
   disableDoubleClick?: boolean;
@@ -96,6 +97,7 @@ export interface VideoPlayerProps {
   onDuration?: (duration: number) => void;
   getVideoRef?: (ref: HTMLVideoElement | null) => void;
   onTrackChange?: (track: TextTrack | null) => void;
+  generatePosterAt?: number;
 }
 
 const VideoPlayer = ({
@@ -112,9 +114,10 @@ const VideoPlayer = ({
   height = "100%",
   className = "",
   style = {},
-  preload = "auto",
+  preload = "metadata",
   seekTo,
   defaultPlaybackRate,
+  defaultVolume = 1,
   sources,
   controlsToExclude = [],
   disableDoubleClick = false,
@@ -140,13 +143,14 @@ const VideoPlayer = ({
   getVideoRef,
   tracks,
   onTrackChange,
+  generatePosterAt,
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [volume, setVolume] = useState(1);
+  const [volume, setVolume] = useState(defaultVolume);
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showControls, setShowControls] = useState(true);
@@ -177,9 +181,9 @@ const VideoPlayer = ({
   useEffect(() => {
     if (videoRef.current) {
       setIsMuted(muted);
-      setVolume(muted ? 0 : 1);
+      setVolume(muted ? 0 : defaultVolume);
     }
-  }, [muted]);
+  }, [muted, defaultVolume]);
 
   useEffect(() => {
     if (videoRef.current && defaultPlaybackRate && duration) {
@@ -213,10 +217,34 @@ const VideoPlayer = ({
   }, [isPlaying]);
 
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.volume = volume;
-    }
-  }, [volume, videoRef]);
+    (async () => {
+      if (videoRef.current && duration && !poster) {
+        const videoElementClone =
+          videoRef.current.cloneNode() as HTMLVideoElement;
+        videoElementClone.crossOrigin = "anonymous";
+        await new Promise(
+          (resolve) => (videoElementClone.onloadedmetadata = resolve)
+        );
+
+        const canvas = document.createElement("canvas");
+
+        canvas.width = videoElementClone.videoWidth;
+        canvas.height = videoElementClone.videoHeight;
+        const time = generatePosterAt || duration / 2;
+        const ctx = canvas.getContext("2d");
+
+        if (ctx) {
+          videoElementClone.currentTime = time;
+          await new Promise(
+            (resolve) => (videoElementClone.onseeked = resolve)
+          );
+          ctx.drawImage(videoElementClone, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL();
+          videoRef.current.poster = dataUrl;
+        }
+      }
+    })();
+  }, [duration, poster, generatePosterAt, src]);
 
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -254,9 +282,21 @@ const VideoPlayer = ({
   }, [currentTime, duration]);
 
   useEffect(() => {
-    const volumeInput = volumeInputRef.current;
-    updateRangeBackground(volumeInput);
-  }, [volume]);
+    if (videoRef.current) {
+      const volumeInput = volumeInputRef.current;
+      updateRangeBackground(volumeInput);
+      const newVolume = Math.min(Math.max(volume || 0, 0), 1);
+      videoRef.current.volume = newVolume;
+      if (onVolumeChange) onVolumeChange(newVolume);
+      if (newVolume === 0) {
+        setIsMuted(true);
+        if (onMuteChange) onMuteChange(true);
+      } else {
+        setIsMuted(false);
+        if (onMuteChange) onMuteChange(false);
+      }
+    }
+  }, [volume, onVolumeChange, onMuteChange]);
 
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -427,23 +467,27 @@ const VideoPlayer = ({
   }, [src]);
 
   const fetchSubtitleBlobUrl = async (url: string): Promise<string> => {
-    const response = await fetch(url);
-    let blob = await response.blob();
+    try {
+      const response = await fetch(url);
+      let blob = await response.blob();
 
-    if (url.endsWith(".srt")) {
-      const srtText = await blob.text();
-      const vttText =
-        "WEBVTT\n\n" +
-        srtText
-          .replace(
-            /(\d+)\n(\d{2}:\d{2}:\d{2}),(\d{3}) --> (\d{2}:\d{2}:\d{2}),(\d{3})/g,
-            "$1\n$2.$3 --> $4.$5"
-          )
-          .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2");
-      blob = new Blob([vttText], { type: "text/vtt" });
+      if (url.endsWith(".srt")) {
+        const srtText = await blob.text();
+        const vttText =
+          "WEBVTT\n\n" +
+          srtText
+            .replace(
+              /(\d+)\n(\d{2}:\d{2}:\d{2}),(\d{3}) --> (\d{2}:\d{2}:\d{2}),(\d{3})/g,
+              "$1\n$2.$3 --> $4.$5"
+            )
+            .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2");
+        blob = new Blob([vttText], { type: "text/vtt" });
+      }
+      return URL.createObjectURL(blob);
+    } catch (error) {
+      console.error("Error fetching subtitle:", error);
+      return "";
     }
-
-    return URL.createObjectURL(blob);
   };
 
   useEffect(() => {
@@ -465,7 +509,6 @@ const VideoPlayer = ({
         trackElement.kind = track.kind;
         trackElement.label = track.label;
         trackElement.srclang = track.srclang;
-        if (track.default) trackElement.default = true;
         const existingTrack = Array.from(videoElement.textTracks).find(
           (t) => t.label === track.label
         );
@@ -478,14 +521,17 @@ const VideoPlayer = ({
       const handleTracksLoaded = () => {
         setTimeout(() => {
           const trackList = Array.from(videoElement.textTracks);
-
           setAvailableTracks(trackList);
 
-          const defaultTrack = trackList.find((t) => t.mode === "showing");          
-          if (defaultTrack) {
-            setCurrentTrack(defaultTrack);
-            if (onTrackChange) onTrackChange(defaultTrack);
-          }
+          trackList.forEach((t, i) => {
+            if (tracks[i].default) {
+              t.mode = "showing";
+              setCurrentTrack(t);
+              if (onTrackChange) onTrackChange(t);
+            } else {
+              t.mode = "disabled";
+            }
+          });
         }, 1000);
       };
 
@@ -517,13 +563,6 @@ const VideoPlayer = ({
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
-    if (newVolume === 0) {
-      setIsMuted(true);
-      if (onMuteChange) onMuteChange(true);
-    } else {
-      setIsMuted(false);
-      if (onMuteChange) onMuteChange(false);
-    }
     setVolume(newVolume);
     resetControlTimeout();
   };
@@ -655,7 +694,9 @@ const VideoPlayer = ({
     setShowTooltip(false);
   };
 
-  const handleTimelineMouseMove = (e: React.MouseEvent<HTMLInputElement>) => {
+  const handleTimelineMouseMove = async (
+    e: React.MouseEvent<HTMLInputElement>
+  ) => {
     const timeline = e.currentTarget;
     const rect = timeline.getBoundingClientRect();
     const position = e.clientX - rect.left;
@@ -681,12 +722,26 @@ const VideoPlayer = ({
 
   useEffect(() => {
     if (disableShortcuts) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.tagName === "BUTTON" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
       switch (e.key) {
         case "ArrowRight":
+          e.preventDefault();
           skipTime(10);
           break;
         case "ArrowLeft":
+          e.preventDefault();
           skipTime(-10);
           break;
         case "ArrowUp":
@@ -713,17 +768,23 @@ const VideoPlayer = ({
           togglePlay();
           break;
         case "m":
+        case "M":
+          e.preventDefault();
           toggleMute();
           break;
-        case "F11":
+        case "f":
+        case "F":
           e.preventDefault();
           toggleFullscreen();
           break;
         case "p":
         case "P":
+          e.preventDefault();
           togglePictureInPicture();
           break;
-        case "s": {
+        case "s":
+        case "S": {
+          e.preventDefault();
           const speedRate =
             playbackRate === 1
               ? 1.25
@@ -1079,7 +1140,7 @@ const VideoPlayer = ({
                     max={duration || 0}
                     step="any"
                     value={currentTime}
-                    onChange={(e) => handleTimelineChange(e)}
+                    onChange={handleTimelineChange}
                     onMouseMove={handleTimelineMouseMove}
                     onMouseLeave={handleTimelineMouseLeave}
                     ref={timelineInputRef}
@@ -1185,15 +1246,7 @@ const VideoPlayer = ({
                     </span>
                     <button
                       className="current-time-duration accent-color-hover"
-                      onClick={() => {
-                        if (videoRef.current) {
-                          if (!reverseCurrentTime) {
-                            setReverseCurrentTime(true);
-                          } else {
-                            setReverseCurrentTime(false);
-                          }
-                        }
-                      }}
+                      onClick={() => setReverseCurrentTime(!reverseCurrentTime)}
                     >
                       {!controlsToExclude.includes("current-time") && (
                         <span className="show-control-inline-flex">
@@ -1275,7 +1328,7 @@ const VideoPlayer = ({
                         max="1"
                         step="any"
                         value={isMuted ? 0 : volume}
-                        onChange={(e) => handleVolumeChange(e)}
+                        onChange={handleVolumeChange}
                         disabled={videoError}
                         ref={volumeInputRef}
                         className={`volume-slider accent-color-input ${
@@ -1287,42 +1340,44 @@ const VideoPlayer = ({
                   </div>
                   <div className="child-controls right-controls">
                     {!controlsToExclude.includes("playbackRate") && (
-                        <div
+                      <div
                         className={`control-relative color-white ${
                           containerWidth < 180
-                          ? "hide-control"
-                          : "show-control-inline-flex"
+                            ? "hide-control"
+                            : "show-control-inline-flex"
                         }`}
-                        >
+                      >
                         <Select
                           items={[
-                          ...playbackRateOptions.map((rate) => ({
-                            value: rate,
-                            label: `${rate}x`,
-                          })),
-                          ...(defaultPlaybackRate &&
-                          !playbackRateOptions.includes(defaultPlaybackRate)
-                            ? [
-                              {
-                              value: defaultPlaybackRate,
-                              label: `${defaultPlaybackRate}x`,
-                              },
-                            ]
-                            : []),
-                          ].sort((a, b) => parseFloat(a.label) - parseFloat(b.label))}
+                            ...playbackRateOptions.map((rate) => ({
+                              value: rate,
+                              label: `${rate}x`,
+                            })),
+                            ...(defaultPlaybackRate &&
+                            !playbackRateOptions.includes(defaultPlaybackRate)
+                              ? [
+                                  {
+                                    value: defaultPlaybackRate,
+                                    label: `${defaultPlaybackRate}x`,
+                                  },
+                                ]
+                              : []),
+                          ].sort(
+                            (a, b) => parseFloat(a.label) - parseFloat(b.label)
+                          )}
                           value={playbackRate}
                           ariaLabel="Playback speed"
                           defaultLabel={`${playbackRate}x`}
                           onClick={(value) => {
-                          const newPlaybackRate = Math.min(
-                            Math.max(Number(value) || 1, 0.0625),
-                            16
-                          );
-                          handleSpeedChange(newPlaybackRate);
+                            const newPlaybackRate = Math.min(
+                              Math.max(Number(value) || 1, 0.0625),
+                              16
+                            );
+                            handleSpeedChange(newPlaybackRate);
                           }}
                           key={playbackRate}
                         />
-                        </div>
+                      </div>
                     )}
                     {!ios && !controlsToExclude.includes("pip") && (
                       <button
@@ -1379,9 +1434,9 @@ const VideoPlayer = ({
                               xmlns="http://www.w3.org/2000/svg"
                               viewBox="0 0 24 24"
                               fill={currentTrack ? accentColor : "currentColor"}
-                              width="24"
-                              height="24"
-                              className="accent-color-hover-cc"
+                              width="30"
+                              height="30"
+                              className="accent-color-hover-cc buttons accent-color-hover"
                             >
                               <path d="M21 3C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3H21ZM20 5H4V19H20V5ZM9 8C10.1045 8 11.1049 8.44841 11.829 9.173L10.4153 10.5866C10.0534 10.2241 9.55299 10 9 10C7.895 10 7 10.895 7 12C7 13.105 7.895 14 9 14C9.5525 14 10.0525 13.7762 10.4144 13.4144L11.828 14.828C11.104 15.552 10.104 16 9 16C6.792 16 5 14.208 5 12C5 9.792 6.792 8 9 8ZM16 8C17.1045 8 18.1049 8.44841 18.829 9.173L17.4153 10.5866C17.0534 10.2241 16.553 10 16 10C14.895 10 14 10.895 14 12C14 13.105 14.895 14 16 14C16.5525 14 17.0525 13.7762 17.4144 13.4144L18.828 14.828C18.104 15.552 17.104 16 16 16C13.792 16 12 14.208 12 12C12 9.792 13.792 8 16 8Z"></path>
                             </svg>
