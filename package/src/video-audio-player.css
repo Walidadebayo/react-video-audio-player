@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  button {
+    border-style: none;
+    background-color: transparent;
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    cursor: pointer;
+    text-transform: none;
+    -webkit-appearance: button;
+    background-color: transparent;
+    background-image: none;
+  }
+}
+
 .accent-color {
   background-color: var(--accent-color) !important;
 }
@@ -75,7 +89,7 @@
   @apply !h-screen flex items-center justify-center;
 }
 
-.video-player-wrapper .show-tooltip { 
+.video-player-wrapper .show-tooltip {
   @apply absolute top-0 left-1/2 transform -translate-x-1/2 mt-2 px-2 py-1 bg-black text-white text-xs rounded;
 }
 

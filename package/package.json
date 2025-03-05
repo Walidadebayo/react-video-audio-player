@@ -54,7 +54,7 @@
   "scripts": {
     "test": "tsc --project tsconfig.test.json && jest",
     "build": "tsc && npm run build:css && rollup -c",
-    "build:css": "tailwindcss -i ./src/video-audio-player.css -o ./dist/video-audio-player.css --minify"
+    "build:css": "tailwindcss -i ./src/video-audio-player.css -o ./dist/video-audio-player.css"
   },
   "dependencies": {
     "react": ">=16.8.0",
