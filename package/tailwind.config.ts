@@ -7,6 +7,9 @@ const config: Config = {
   },
   plugins: [],
   darkMode: 'class',
+  corePlugins: {
+    preflight: false,
+  },
 }
 
-export default config;  
+export default config;

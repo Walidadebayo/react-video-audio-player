@@ -175,6 +175,7 @@ const AudioPlayer = ({
     if (waveSurfer.current) {
       waveSurfer.current.setMuted(!isMuted);
       setIsMuted(!isMuted);
+      setVolume(volume === 0 ? 1 : volume);
       updateRangeBackground(volumeInputRef.current, !isMuted ? 0 : volume, 1);
       if (onMuteChange) onMuteChange(!isMuted);
     }
@@ -360,7 +361,6 @@ const AudioPlayer = ({
         cursorColor: "#000000",
         height: 50,
         url: src,
-        autoplay: autoPlay,
         dragToSeek: true,
         cursorWidth: 2,
         normalize: true,
@@ -378,6 +378,9 @@ const AudioPlayer = ({
       waveSurfer.current.getMediaElement().loop = loop;
       waveSurfer.current.on("seeking", handleSeeked);
       waveSurfer.current.getMediaElement().onvolumechange = handleVolumeChange;
+      if(autoPlay) {
+        waveSurfer.current.getMediaElement().autoplay = true;
+      }
 
       if (!controls) {
         waveSurfer.current.on("click", handleClick);
@@ -401,13 +404,15 @@ const AudioPlayer = ({
           waveSurfer.current.un("click", handleClick);
         }
         waveSurfer.current.getMediaElement().onvolumechange = null;
+        waveSurfer.current.getMediaElement().loop = false;
+        waveSurfer.current.getMediaElement().autoplay = false;
       }
     };
   }, [
     src,
     accentColor,
-    autoPlay,
     loop,
+    autoPlay,
     onReady,
     onDuration,
     onEnded,

@@ -44,8 +44,8 @@ export default function InstallationPage() {
             </p>
             <CodeHighlighter language="html" showLineNumbers={false}>
               {`<!-- UMD -->
-<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.0/dist/index.umd.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.0/dist/video-audio-player.min.css" />`}
+<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.1/dist/index.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.1/dist/video-audio-player.min.css" />`}
             </CodeHighlighter>
           </div>
         </section>
@@ -67,13 +67,12 @@ function App() {
               <h4 className="text-xl font-bold mt-6 mb-4">UMD Version</h4>
               <CodeHighlighter language="html">
                 {`<div id="video-player-container"></div>
-<div id="audio-player-container"></div>
 
 <!-- UMD -->
-<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.0/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.1/dist/index.umd.min.js"></script>
 <link
   rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.0/dist/video-audio-player.min.css"
+  href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.1/dist/video-audio-player.min.css"
 />
 
 <script>
@@ -108,14 +107,12 @@ function App() {
               </CodeHighlighter>
               <h4 className="text-xl font-bold mt-6 mb-4">UMD Version</h4>
               <CodeHighlighter language="html">
-                {`<div id="video-player-container"></div>
-<div id="audio-player-container"></div>
-
+                {`<div id="audio-player-container"></div>
 <!-- UMD -->
-<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.0/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.1/dist/index.umd.min.js"></script>
 <link
   rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.0/dist/video-audio-player.min.css"
+  href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.1/dist/video-audio-player.min.css"
 />
 
 <script>

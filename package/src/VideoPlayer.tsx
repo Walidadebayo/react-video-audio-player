@@ -148,7 +148,7 @@ const VideoPlayer = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(muted);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [volume, setVolume] = useState(defaultVolume);
   const [currentTime, setCurrentTime] = useState(0);
@@ -340,13 +340,23 @@ const VideoPlayer = ({
       if (onPlay) {
         onPlay();
       }
+      setIsPlaying(true);
+      resetControlTimeout();
     };
+
+    if(autoPlay) {
+      setIsPlaying(true);
+      if(muted && videoElement) {
+        videoElement.muted = true;
+      }
+    }
 
     const handlePause = () => {
       setIsPlaying(false);
       if (onPause) {
         onPause();
       }
+      resetControlTimeout();
     };
 
     const handleEnded = () => {
@@ -445,6 +455,9 @@ const VideoPlayer = ({
     onVolumeChange,
     onFullscreenChange,
     onPictureInPictureChange,
+    resetControlTimeout,
+    autoPlay,
+    muted,
   ]);
 
   useEffect(() => {
@@ -604,6 +617,7 @@ const VideoPlayer = ({
     if (videoRef.current) {
       videoRef.current.muted = !isMuted;
       setIsMuted(!isMuted);
+      setVolume(volume === 0 ? 1 : volume);
       updateRangeBackground(volumeInputRef.current, !isMuted ? 0 : volume, 1);
       if (onMuteChange) onMuteChange(!isMuted);
       resetControlTimeout();
@@ -932,7 +946,7 @@ const VideoPlayer = ({
             }
             id="video"
             autoPlay={autoPlay}
-            muted={muted}
+            muted={isMuted}
             loop={loop}
             playsInline={playsInline}
             poster={poster}
