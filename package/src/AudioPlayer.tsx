@@ -378,7 +378,7 @@ const AudioPlayer = ({
       waveSurfer.current.getMediaElement().loop = loop;
       waveSurfer.current.on("seeking", handleSeeked);
       waveSurfer.current.getMediaElement().onvolumechange = handleVolumeChange;
-      if(autoPlay) {
+      if (autoPlay) {
         waveSurfer.current.getMediaElement().autoplay = true;
       }
 

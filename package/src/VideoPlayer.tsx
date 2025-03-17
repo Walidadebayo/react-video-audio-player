@@ -344,9 +344,9 @@ const VideoPlayer = ({
       resetControlTimeout();
     };
 
-    if(autoPlay) {
+    if (autoPlay) {
       setIsPlaying(true);
-      if(muted && videoElement) {
+      if (muted && videoElement) {
         videoElement.muted = true;
       }
     }
