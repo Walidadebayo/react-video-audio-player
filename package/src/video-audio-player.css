@@ -2,20 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  button {
-    border-style: none;
-    background-color: transparent;
-    outline: 2px solid transparent;
-    outline-offset: 2px;
-    cursor: pointer;
-    text-transform: none;
-    -webkit-appearance: button;
-    background-color: transparent;
-    background-image: none;
-  }
-}
-
 .accent-color {
   background-color: var(--accent-color) !important;
 }
@@ -23,6 +9,8 @@
 .accent-color-hover:hover {
   background-color: var(--accent-color) !important;
   transition: background-color 0.2s !important;
+  color: white !important;
+  transition: color 0.2s !important;
 }
 
 .accent-color-hover-cc:hover {
@@ -89,6 +77,19 @@
   @apply !h-screen flex items-center justify-center;
 }
 
+.video-player-wrapper button,
+.audio-player-wrapper button {
+  border-style: none;
+  background-color: transparent;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  cursor: pointer;
+  text-transform: none;
+  -webkit-appearance: button;
+  background-color: transparent;
+  background-image: none;
+}
+
 .video-player-wrapper .show-tooltip {
   @apply absolute top-0 left-1/2 transform -translate-x-1/2 mt-2 px-2 py-1 bg-black text-white text-xs rounded;
 }
@@ -102,7 +103,7 @@
 }
 
 .video-player-wrapper .error-message button {
-  @apply text-white bg-red-500 px-2 py-1 rounded-md hover:bg-red-600;
+  @apply text-white bg-red-500 px-2 py-1 rounded-md hover:bg-red-600 border-none;
 }
 
 .video-player-wrapper .error-message span {
@@ -160,6 +161,10 @@
 .video-player-wrapper .controls .all-controls {
   @apply w-full bottom-0 absolute px-2 py-1 bg-black/70;
 }
+
+/* .video-player-wrapper .controls .all-controls .ctrl {
+  @apply mx-8;
+} */
 
 .video-player-wrapper .timeline {
   @apply cursor-pointer w-full relative;
@@ -260,6 +265,10 @@
 
 .dropdown {
   @apply relative inline-block;
+}
+
+.video-player-wrapper .dropdown .dropdown-button {
+  @apply text-white;
 }
 
 .dropdown .dropdown-button {
