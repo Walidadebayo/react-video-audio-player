@@ -147,9 +147,12 @@ const VideoPlayer = ({
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
+  const lastVolumeRef = useRef<number>(defaultVolume);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(muted);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
   const [volume, setVolume] = useState(defaultVolume);
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
@@ -169,6 +172,8 @@ const VideoPlayer = ({
   const [reverseCurrentTime, setReverseCurrentTime] = useState(false);
   const [availableTracks, setAvailableTracks] = useState<TextTrack[]>([]);
   const [currentTrack, setCurrentTrack] = useState<TextTrack | null>(null);
+  const playbackRateRef = useRef(playbackRate);
+  const volumeRef = useRef(volume);
 
   useEffect(() => {
     if (typeof window !== "undefined" && typeof navigator !== "undefined") {
@@ -218,39 +223,70 @@ const VideoPlayer = ({
 
   useEffect(() => {
     (async () => {
+      if (!mountedRef.current) return;
       if (videoRef.current && duration && !poster) {
-        const videoElementClone =
-          videoRef.current.cloneNode() as HTMLVideoElement;
-        videoElementClone.crossOrigin = "anonymous";
-        await new Promise(
-          (resolve) => (videoElementClone.onloadedmetadata = resolve)
-        );
-
-        const canvas = document.createElement("canvas");
-
-        canvas.width = videoElementClone.videoWidth;
-        canvas.height = videoElementClone.videoHeight;
-        const time = generatePosterAt || duration / 2;
-        const ctx = canvas.getContext("2d");
-
-        if (ctx) {
-          videoElementClone.currentTime = time;
+        try {
+          const videoElementClone =
+            videoRef.current.cloneNode() as HTMLVideoElement;
+          videoElementClone.crossOrigin = "anonymous";
           await new Promise(
-            (resolve) => (videoElementClone.onseeked = resolve)
+            (resolve) => (videoElementClone.onloadedmetadata = resolve)
           );
-          ctx.drawImage(videoElementClone, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL();
-          videoRef.current.poster = dataUrl;
+
+          const canvas = document.createElement("canvas");
+          canvas.width = videoElementClone.videoWidth || 640;
+          canvas.height = videoElementClone.videoHeight || 360;
+          const time = generatePosterAt || duration / 2;
+          const ctx = canvas.getContext("2d");
+
+          if (ctx) {
+            try {
+              videoElementClone.currentTime = time;
+              await new Promise(
+                (resolve) => (videoElementClone.onseeked = resolve)
+              );
+              ctx.drawImage(
+                videoElementClone,
+                0,
+                0,
+                canvas.width,
+                canvas.height
+              );
+              const dataUrl = canvas.toDataURL();
+              if (videoRef.current) videoRef.current.poster = dataUrl;
+            } catch (err) {
+              console.warn(
+                "Could not generate poster (CORS or seek issue)",
+                err
+              );
+            }
+          }
+        } catch (err) {
+          console.warn("Poster generation skipped", err);
         }
       }
     })();
   }, [duration, poster, generatePosterAt, src]);
 
   useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     const videoElement = videoRef.current;
 
     const handleLoadedMetadata = () => {
       const duration = videoElement?.duration || 0;
+      // detect portrait orientation from video metadata
+      try {
+        const vw = videoElement?.videoWidth || 0;
+        const vh = videoElement?.videoHeight || 0;
+        if (vw && vh) setIsPortrait(vh > vw);
+      } catch {
+        // ignore metadata read errors
+      }
       setDuration(duration);
       if (onReady) {
         onReady();
@@ -391,15 +427,21 @@ const VideoPlayer = ({
     };
 
     const handleFullscreenChange = () => {
-      if (onFullscreenChange) {
-        onFullscreenChange(!!document.fullscreenElement);
-        setIsFullscreen(!!document.fullscreenElement);
+      try {
+        const fs = !!document.fullscreenElement;
+        if (onFullscreenChange) onFullscreenChange(fs);
+        setIsFullscreen(fs);
+      } catch (err) {
+        console.warn("Error handling fullscreen change", err);
       }
     };
 
     const handlePictureInPictureChange = () => {
-      if (onPictureInPictureChange) {
-        onPictureInPictureChange(!!document.pictureInPictureElement);
+      try {
+        const pip = !!document.pictureInPictureElement;
+        if (onPictureInPictureChange) onPictureInPictureChange(pip);
+      } catch (err) {
+        console.warn("Error handling PiP change", err);
       }
     };
 
@@ -412,14 +454,21 @@ const VideoPlayer = ({
       videoElement.addEventListener("seeking", handleSeeking);
       videoElement.addEventListener("volumechange", handleVolumeChange);
       document.addEventListener("fullscreenchange", handleFullscreenChange);
-      videoElement.addEventListener(
-        "enterpictureinpicture",
-        handlePictureInPictureChange
-      );
-      videoElement.addEventListener(
-        "leavepictureinpicture",
-        handlePictureInPictureChange
-      );
+      // attach PiP listeners only if supported
+      try {
+        if (typeof videoElement.requestPictureInPicture === "function") {
+          videoElement.addEventListener(
+            "enterpictureinpicture",
+            handlePictureInPictureChange
+          );
+          videoElement.addEventListener(
+            "leavepictureinpicture",
+            handlePictureInPictureChange
+          );
+        }
+      } catch {
+        // ignore event listener attach failures
+      }
     }
 
     return () => {
@@ -435,14 +484,18 @@ const VideoPlayer = ({
           "fullscreenchange",
           handleFullscreenChange
         );
-        videoElement.removeEventListener(
-          "enterpictureinpicture",
-          handlePictureInPictureChange
-        );
-        videoElement.removeEventListener(
-          "leavepictureinpicture",
-          handlePictureInPictureChange
-        );
+        try {
+          videoElement.removeEventListener(
+            "enterpictureinpicture",
+            handlePictureInPictureChange
+          );
+          videoElement.removeEventListener(
+            "leavepictureinpicture",
+            handlePictureInPictureChange
+          );
+        } catch {
+          // ignore
+        }
       }
     };
   }, [
@@ -506,55 +559,78 @@ const VideoPlayer = ({
   useEffect(() => {
     const videoElement = videoRef.current;
     if (videoElement && tracks?.length && src) {
-      // Remove existing tracks
-      while (videoElement.firstChild) {
-        videoElement.removeChild(videoElement.firstChild);
-      }
+      Array.from(videoElement.querySelectorAll("track")).forEach((t) =>
+        t.remove()
+      );
 
       const blobUrls: string[] = [];
+      let cancelled = false;
 
-      // Add new tracks
-      tracks.forEach(async (track) => {
-        const trackBlobUrl = await fetchSubtitleBlobUrl(track.src);
-        const trackElement = document.createElement("track");
-        blobUrls.push(trackBlobUrl);
-        trackElement.src = trackBlobUrl;
-        trackElement.kind = track.kind;
-        trackElement.label = track.label;
-        trackElement.srclang = track.srclang;
-        const existingTrack = Array.from(videoElement.textTracks).find(
-          (t) => t.label === track.label
-        );
-        if (!existingTrack) {
-          videoElement.appendChild(trackElement);
-        }
-      });
+      (async () => {
+        try {
+          for (const track of tracks) {
+            if (cancelled) break;
+            const trackBlobUrl = await fetchSubtitleBlobUrl(track.src);
+            if (!trackBlobUrl) continue;
+            blobUrls.push(trackBlobUrl);
+            const trackElement = document.createElement("track");
+            trackElement.src = trackBlobUrl;
+            trackElement.kind = track.kind;
+            trackElement.label = track.label;
+            trackElement.srclang = track.srclang;
+            videoElement.appendChild(trackElement);
+            // small pause to allow browser to register track
+            await new Promise((r) => setTimeout(r, 50));
+          }
 
-      // Get all tracks after they're loaded
-      const handleTracksLoaded = () => {
-        setTimeout(() => {
+          // Wait a few short attempts for textTracks to populate
+          const maxAttempts = 5;
+          let attempts = 0;
+          while (
+            !cancelled &&
+            attempts < maxAttempts &&
+            videoElement.textTracks.length === 0
+          ) {
+            await new Promise((r) => setTimeout(r, 100));
+            attempts += 1;
+          }
+
           const trackList = Array.from(videoElement.textTracks);
           setAvailableTracks(trackList);
 
-          trackList.forEach((t, i) => {
-            if (tracks[i].default) {
+          trackList.forEach((t) => (t.mode = "disabled"));
+          trackList.forEach((t) => {
+            const config = tracks.find((tr) => tr.label === t.label);
+            if (config?.default) {
               t.mode = "showing";
               setCurrentTrack(t);
               if (onTrackChange) onTrackChange(t);
-            } else {
-              t.mode = "disabled";
             }
           });
-        }, 1000);
+        } catch (err) {
+          console.warn("Error attaching tracks", err);
+        }
+      })();
+
+      const handleTracksLoaded = () => {
+        const trackList = Array.from(videoElement.textTracks);
+        setAvailableTracks(trackList);
       };
 
       videoElement.addEventListener("loadedmetadata", handleTracksLoaded);
       return () => {
+        cancelled = true;
         videoElement.removeEventListener("loadedmetadata", handleTracksLoaded);
-        blobUrls.forEach((url) => URL.revokeObjectURL(url));
+        blobUrls.forEach((url) => {
+          try {
+            URL.revokeObjectURL(url);
+          } catch {
+            // ignore
+          }
+        });
       };
     }
-  }, [tracks, onTrackChange, src, videoRef]);
+  }, [tracks, onTrackChange, src]);
 
   const handleTrackChange = (track: TextTrack | null) => {
     // Disable all tracks first
@@ -608,38 +684,67 @@ const VideoPlayer = ({
       } else {
         videoRef.current.play();
       }
-      setIsPlaying(!isPlaying);
+      setIsPlaying((p) => !p);
       resetControlTimeout();
     }
   }, [resetControlTimeout, isPlaying]);
 
   const toggleMute = useCallback(() => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
-      setVolume(volume === 0 ? 1 : volume);
-      updateRangeBackground(volumeInputRef.current, !isMuted ? 0 : volume, 1);
-      if (onMuteChange) onMuteChange(!isMuted);
-      resetControlTimeout();
+    if (!videoRef.current) return;
+    const currentlyMuted = isMuted;
+    if (!currentlyMuted) {
+      lastVolumeRef.current = volume || lastVolumeRef.current || 1;
+      videoRef.current.muted = true;
+      setIsMuted(true);
+      setVolume(0);
+      updateRangeBackground(volumeInputRef.current, 0, 1);
+      if (onMuteChange) onMuteChange(true);
+    } else {
+      const restore = lastVolumeRef.current || 1;
+      videoRef.current.muted = false;
+      setIsMuted(false);
+      setVolume(restore);
+      updateRangeBackground(volumeInputRef.current, restore, 1);
+      if (onMuteChange) onMuteChange(false);
     }
+    resetControlTimeout();
   }, [isMuted, resetControlTimeout, volume, onMuteChange]);
 
   const toggleFullscreen = useCallback(() => {
     if (!isFullscreen) {
       if (videoContainerRef.current) {
-        if (videoContainerRef.current.requestFullscreen) {
-          videoContainerRef.current.requestFullscreen();
-          setIsFullscreen(true);
-        } else {
-          console.warn("Fullscreen is not supported by this browser.");
+        try {
+          if (videoContainerRef.current.requestFullscreen) {
+            // prefer requestFullscreen; guard with promise catch
+            const p = videoContainerRef.current.requestFullscreen();
+            if (p && typeof (p as Promise<unknown>).catch === "function") {
+              (p as Promise<unknown>).catch((err: unknown) => {
+                console.warn("requestFullscreen failed", err);
+              });
+            }
+            setIsFullscreen(true);
+          } else {
+            console.warn("Fullscreen is not supported by this browser.");
+          }
+        } catch (err) {
+          console.warn("Error requesting fullscreen", err);
         }
       }
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-        setIsFullscreen(false);
-      } else {
-        console.warn("Exiting fullscreen is not supported by this browser.");
+      try {
+        if (document.exitFullscreen) {
+          const p = document.exitFullscreen();
+          if (p && typeof (p as Promise<unknown>).catch === "function") {
+            (p as Promise<unknown>).catch((err: unknown) => {
+              console.warn("exitFullscreen failed", err);
+            });
+          }
+          setIsFullscreen(false);
+        } else {
+          console.warn("Exiting fullscreen is not supported by this browser.");
+        }
+      } catch (err) {
+        console.warn("Error exiting fullscreen", err);
       }
     }
     resetControlTimeout();
@@ -657,14 +762,32 @@ const VideoPlayer = ({
   );
 
   const togglePictureInPicture = useCallback(async () => {
-    if (videoRef.current) {
+    if (!videoRef.current) return;
+    try {
       if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-      } else if (videoRef.current.requestPictureInPicture) {
-        await videoRef.current.requestPictureInPicture();
+        const p = document.exitPictureInPicture();
+        if (p && typeof (p as Promise<unknown>).catch === "function") {
+          (p as Promise<unknown>).catch((err: unknown) => {
+            console.warn("exitPictureInPicture failed", err);
+          });
+        }
       } else {
-        console.warn("Picture-in-Picture is not supported by this browser.");
+        const maybePip = videoRef.current as HTMLVideoElement & {
+          requestPictureInPicture?: () => Promise<unknown>;
+        };
+        if (typeof maybePip.requestPictureInPicture === "function") {
+          const p = maybePip.requestPictureInPicture();
+          if (p && typeof p.catch === "function")
+            p.catch((err: unknown) =>
+              console.warn("requestPictureInPicture failed", err)
+            );
+        } else {
+          console.warn("Picture-in-Picture is not supported by this browser.");
+        }
       }
+    } catch (err) {
+      console.warn("Error toggling Picture-in-Picture", err);
+    } finally {
       resetControlTimeout();
     }
   }, [resetControlTimeout]);
@@ -735,6 +858,14 @@ const VideoPlayer = ({
   }, [hoverTime, hoverPosition]);
 
   useEffect(() => {
+    playbackRateRef.current = playbackRate;
+  }, [playbackRate]);
+
+  useEffect(() => {
+    volumeRef.current = volume;
+  }, [volume]);
+
+  useEffect(() => {
     if (disableShortcuts) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -799,20 +930,21 @@ const VideoPlayer = ({
         case "s":
         case "S": {
           e.preventDefault();
+          const current = playbackRateRef.current || 1;
           const speedRate =
-            playbackRate === 1
+            current === 1
               ? 1.25
-              : playbackRate === 1.25
+              : current === 1.25
               ? 1.5
-              : playbackRate === 1.5
+              : current === 1.5
               ? 1.75
-              : playbackRate === 1.75
+              : current === 1.75
               ? 2
-              : playbackRate === 2
+              : current === 2
               ? 0.25
-              : playbackRate === 0.25
+              : current === 0.25
               ? 0.5
-              : playbackRate === 0.5
+              : current === 0.5
               ? 0.75
               : 1;
           handleSpeedChange(speedRate);
@@ -829,9 +961,6 @@ const VideoPlayer = ({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [
-    isPlaying,
-    volume,
-    playbackRate,
     disableShortcuts,
     handleSpeedChange,
     skipTime,
@@ -884,14 +1013,24 @@ const VideoPlayer = ({
     if (onDownloadStart) onDownloadStart();
     try {
       setIsDownloading(true);
-      const link = document.createElement("a");
       const response = await fetch(url);
       const blob = await response.blob();
-      link.href = URL.createObjectURL(blob);
-      link.download =
-        Math.random().toString(36).substring(2, 9) + "." + type || "mp4";
+      const objectUrl = URL.createObjectURL(blob);
+      const ext = type || url.split(".").pop() || "mp4";
+      const filename = `${Math.random().toString(36).substring(2, 9)}.${ext}`;
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = filename;
+      document.body.appendChild(link);
       link.click();
       link.remove();
+      setTimeout(() => {
+        try {
+          URL.revokeObjectURL(objectUrl);
+        } catch {
+          /* ignore */
+        }
+      }, 1000);
       setIsDownloading(false);
       if (onDownloadEnd) onDownloadEnd(true);
     } catch (error) {
@@ -927,7 +1066,7 @@ const VideoPlayer = ({
         }
         className={`video-player-wrapper ${
           isFullscreen ? "fullscreen-container" : ""
-        }`}
+        } ${isPortrait && isFullscreen ? "portrait" : ""}`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -1265,7 +1404,7 @@ const VideoPlayer = ({
                       {!controlsToExclude.includes("current-time") && (
                         <span className="show-control-inline-flex">
                           {reverseCurrentTime
-                            ? formatTime(currentTime - duration)
+                            ? formatTime(Math.max(duration - currentTime, 0))
                             : formatTime(currentTime)}
                         </span>
                       )}

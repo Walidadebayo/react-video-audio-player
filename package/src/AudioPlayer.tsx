@@ -7,7 +7,7 @@ import React, {
   useRef,
   CSSProperties,
 } from "react";
-import WaveSurfer from "wavesurfer.js";
+import WaveSurfer, { WaveSurferOptions } from "wavesurfer.js";
 import { formatTime, playbackRateOptions } from "./lib/utils";
 import { updateRangeBackground } from "./lib/utils";
 import Select from "./components/Select";
@@ -89,6 +89,8 @@ const AudioPlayer = ({
   getAudioElement,
 }: AudioPlayerProps) => {
   const waveformRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
+  const lastVolumeRef = useRef<number>(defaultVolume);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [volume, setVolume] = useState(defaultVolume);
@@ -96,6 +98,8 @@ const AudioPlayer = ({
   const [duration, setDuration] = useState(0);
   const [audioError, setAudioError] = useState(false);
   const waveSurfer = useRef<WaveSurfer | null>(null);
+  const desiredPlayRef = useRef<boolean | null>(null);
+  const desiredMuteRef = useRef<boolean | null>(null);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const audioContainerRef = useRef<HTMLDivElement>(null);
@@ -107,23 +111,37 @@ const AudioPlayer = ({
   useEffect(() => {
     if (waveSurfer.current) {
       setIsMuted(muted);
-      setVolume(muted ? 0 : defaultVolume);
+      const initialVolume = muted ? 0 : defaultVolume;
+      setVolume(initialVolume);
+      lastVolumeRef.current = initialVolume || 1;
     }
-  }, [muted, waveSurfer, defaultVolume]);
+  }, [muted, defaultVolume]);
 
   useEffect(() => {
-    setTimeout(() => {
+    const timer = window.setTimeout(() => {
+      if (!mountedRef.current) return;
       if (waveSurfer.current && defaultPlaybackRate && duration) {
         const newPlaybackRate = Math.min(
           Math.max(Number(defaultPlaybackRate) || 1, 0.0625),
           16
         );
         setPlaybackRate(newPlaybackRate);
-        waveSurfer.current.setPlaybackRate(newPlaybackRate);
+        try {
+          waveSurfer.current.setPlaybackRate(newPlaybackRate);
+        } catch (err) {
+          console.warn("Failed to set WaveSurfer playback rate", err);
+        }
         if (onPlaybackRateChange) onPlaybackRateChange(newPlaybackRate);
       }
     }, 500);
+    return () => clearTimeout(timer);
   }, [defaultPlaybackRate, duration, onPlaybackRateChange]);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (waveSurfer.current) {
@@ -139,6 +157,7 @@ const AudioPlayer = ({
         setIsMuted(false);
         if (onMuteChange) onMuteChange(false);
       }
+      if (newVolume > 0) lastVolumeRef.current = newVolume;
     }
   }, [volume, onVolumeChange, onMuteChange]);
 
@@ -165,21 +184,66 @@ const AudioPlayer = ({
   }, []);
 
   const togglePlay = useCallback(() => {
+    setIsPlaying((p) => {
+      const next = !p;
+      desiredPlayRef.current = next;
+      return next;
+    });
     if (waveSurfer.current) {
-      waveSurfer.current.playPause();
-      setIsPlaying(!isPlaying);
+      try {
+        const wsAny = waveSurfer.current as unknown as {
+          isPlaying?: () => boolean;
+        };
+        if (wsAny.isPlaying && typeof wsAny.isPlaying === "function") {
+          const currentlyPlaying = wsAny.isPlaying();
+          if (currentlyPlaying) waveSurfer.current.pause();
+          else waveSurfer.current.play();
+        } else {
+          waveSurfer.current.playPause();
+        }
+      } catch {
+        try {
+          waveSurfer.current.playPause();
+        } catch {
+          // ignore
+        }
+      }
     }
-  }, [isPlaying]);
+  }, []);
 
   const toggleMute = useCallback(() => {
-    if (waveSurfer.current) {
-      waveSurfer.current.setMuted(!isMuted);
-      setIsMuted(!isMuted);
-      setVolume(volume === 0 ? 1 : volume);
-      updateRangeBackground(volumeInputRef.current, !isMuted ? 0 : volume, 1);
-      if (onMuteChange) onMuteChange(!isMuted);
+    const currentlyMuted = isMuted;
+    const nextMuted = !currentlyMuted;
+    desiredMuteRef.current = nextMuted;
+    setIsMuted(nextMuted);
+    if (nextMuted) {
+      lastVolumeRef.current = volume || lastVolumeRef.current || 1;
+      setVolume(0);
+      updateRangeBackground(volumeInputRef.current, 0, 1);
+      if (onMuteChange) onMuteChange(true);
+    } else {
+      const restore = lastVolumeRef.current || 1;
+      setVolume(restore);
+      updateRangeBackground(volumeInputRef.current, restore, 1);
+      if (onMuteChange) onMuteChange(false);
     }
-  }, [isMuted, volume, onMuteChange]);
+
+    // apply to WaveSurfer if ready
+    if (waveSurfer.current) {
+      try {
+        waveSurfer.current.setMuted(nextMuted);
+        if (!nextMuted && waveSurfer.current.setVolume) {
+          try {
+            waveSurfer.current.setVolume(lastVolumeRef.current || 1);
+          } catch {
+            // ignore
+          }
+        }
+      } catch (err) {
+        console.warn("WaveSurfer setMuted failed", err);
+      }
+    }
+  }, [isMuted, onMuteChange, volume]);
 
   useEffect(() => {
     if (disableShortcuts) return;
@@ -352,60 +416,130 @@ const AudioPlayer = ({
         onVolumeChange(newVolume);
       }
     };
-
     if (waveformRef.current) {
-      waveSurfer.current = WaveSurfer.create({
-        container: waveformRef.current,
-        waveColor: "#9ca3af",
-        progressColor: accentColor,
-        cursorColor: "#000000",
-        height: 50,
-        url: src,
-        dragToSeek: true,
-        cursorWidth: 2,
-        normalize: true,
-        barWidth: 2,
-        barGap: 1,
-      });
+      (async () => {
+        const container = waveformRef.current!;
 
-      setCurrentTime(0);
+        let durationSeconds = 0;
+        try {
+          const probe = document.createElement("audio");
+          probe.crossOrigin = "anonymous";
+          probe.preload = "metadata";
+          probe.src = src;
+          await new Promise<void>((resolve) => {
+            const onLoaded = () => {
+              durationSeconds = probe.duration || 0;
+              cleanup();
+              resolve();
+            };
+            const onError = () => {
+              cleanup();
+              resolve();
+            };
+            function cleanup() {
+              probe.removeEventListener("loadedmetadata", onLoaded);
+              probe.removeEventListener("error", onError);
+              try {
+                probe.src = "";
+              } catch {
+                /* Ignore cleanup errors */
+              }
+            }
+            probe.addEventListener("loadedmetadata", onLoaded);
+            probe.addEventListener("error", onError);
+          });
+        } catch (err) {
+          console.warn("Audio probe failed", err);
+        }
 
-      waveSurfer.current.on("ready", handleReady);
-      waveSurfer.current.on("finish", handleEnded);
-      waveSurfer.current.on("play", handlePlay);
-      waveSurfer.current.on("pause", handlePause);
-      waveSurfer.current.on("error", handleError);
-      waveSurfer.current.getMediaElement().loop = loop;
-      waveSurfer.current.on("seeking", handleSeeked);
-      waveSurfer.current.getMediaElement().onvolumechange = handleVolumeChange;
-      if (autoPlay) {
-        waveSurfer.current.getMediaElement().autoplay = true;
-      }
+        const LONG_AUDIO_SECONDS = 30 * 60;
+        const isLong = durationSeconds && durationSeconds > LONG_AUDIO_SECONDS;
 
-      if (!controls) {
-        waveSurfer.current.on("click", handleClick);
-      }
+        const wsOptions: WaveSurferOptions = {
+          container: container,
+          waveColor: "#9ca3af",
+          progressColor: accentColor,
+          cursorColor: "#000000",
+          height: 50,
+          url: src,
+          dragToSeek: true,
+          cursorWidth: 2,
+          normalize: !isLong,
+          barWidth: isLong ? 3 : 2,
+          barGap: isLong ? 2 : 1,
+        };
+        if (isLong) {
+          wsOptions.backend = "MediaElement";
+        }
 
-      if (seekTo) {
-        waveSurfer.current.seekTo(seekTo);
-      }
+        waveSurfer.current = WaveSurfer.create(wsOptions);
+        setCurrentTime(0);
+
+        try {
+          waveSurfer.current.on("ready", handleReady);
+          waveSurfer.current.on("finish", handleEnded);
+          waveSurfer.current.on("play", handlePlay);
+          waveSurfer.current.on("pause", handlePause);
+          waveSurfer.current.on("error", handleError);
+          const media =
+            waveSurfer.current.getMediaElement &&
+            waveSurfer.current.getMediaElement();
+          if (media) {
+            media.loop = loop;
+            media.onvolumechange = handleVolumeChange;
+            if (autoPlay) media.autoplay = true;
+          }
+          waveSurfer.current.on("seeking", handleSeeked);
+          if (!controls) {
+            waveSurfer.current.on("click", handleClick);
+          }
+        } catch (err) {
+          console.warn("Error binding WaveSurfer events", err);
+        }
+
+        if (seekTo && waveSurfer.current) {
+          try {
+            waveSurfer.current.seekTo(seekTo);
+          } catch {
+            /* Ignore seek errors */
+          }
+        }
+      })();
     }
 
     return () => {
-      if (waveSurfer.current) {
-        waveSurfer.current.destroy();
-        waveSurfer.current.un("ready", handleReady);
-        waveSurfer.current.un("finish", handleEnded);
-        waveSurfer.current.un("play", handlePlay);
-        waveSurfer.current.un("pause", handlePause);
-        waveSurfer.current.un("seeking", handleSeeked);
-        waveSurfer.current.un("error", handleError);
-        if (!controls) {
-          waveSurfer.current.un("click", handleClick);
+      const ws = waveSurfer.current;
+      if (ws) {
+        try {
+          ws.un("ready", handleReady);
+          ws.un("finish", handleEnded);
+          ws.un("play", handlePlay);
+          ws.un("pause", handlePause);
+          ws.un("seeking", handleSeeked);
+          ws.un("error", handleError);
+          if (!controls) {
+            ws.un("click", handleClick);
+          }
+        } catch (err) {
+          console.warn("Error unbinding WaveSurfer events", err);
         }
-        waveSurfer.current.getMediaElement().onvolumechange = null;
-        waveSurfer.current.getMediaElement().loop = false;
-        waveSurfer.current.getMediaElement().autoplay = false;
+
+        try {
+          const media = ws.getMediaElement && ws.getMediaElement();
+          if (media) {
+            media.onvolumechange = null;
+            media.loop = false;
+            media.autoplay = false;
+          }
+        } catch (err) {
+          console.warn("Error cleaning WaveSurfer media", err);
+        }
+
+        try {
+          ws.destroy();
+        } catch (err) {
+          console.warn("Error destroying WaveSurfer instance", err);
+        }
       }
     };
   }, [
@@ -584,7 +718,7 @@ const AudioPlayer = ({
                     }`}
                   >
                     {reverseCurrentTime
-                      ? formatTime(currentTime - duration)
+                      ? formatTime(Math.max(duration - currentTime, 0))
                       : formatTime(currentTime)}
                   </span>
                 )}
