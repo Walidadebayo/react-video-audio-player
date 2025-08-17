@@ -416,10 +416,21 @@ const AudioPlayer = ({
         onVolumeChange(newVolume);
       }
     };
+
+    let cancelled = false;
+
+    if (waveSurfer.current) {
+      try {
+        waveSurfer.current.destroy();
+      } catch (err) {
+        console.warn("Error destroying previous WaveSurfer instance", err);
+      }
+      waveSurfer.current = null;
+    }
+
     if (waveformRef.current) {
       (async () => {
         const container = waveformRef.current!;
-
         let durationSeconds = 0;
         try {
           const probe = document.createElement("audio");
@@ -451,7 +462,7 @@ const AudioPlayer = ({
         } catch (err) {
           console.warn("Audio probe failed", err);
         }
-
+        if (cancelled) return;
         const LONG_AUDIO_SECONDS = 30 * 60;
         const isLong = durationSeconds && durationSeconds > LONG_AUDIO_SECONDS;
 
@@ -508,6 +519,7 @@ const AudioPlayer = ({
     }
 
     return () => {
+      cancelled = true;
       const ws = waveSurfer.current;
       if (ws) {
         try {
@@ -540,6 +552,7 @@ const AudioPlayer = ({
         } catch (err) {
           console.warn("Error destroying WaveSurfer instance", err);
         }
+        waveSurfer.current = null;
       }
     };
   }, [
