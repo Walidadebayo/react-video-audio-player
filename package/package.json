@@ -8,6 +8,7 @@
     "email": "adebayowalid@gmail.com",
     "url": "https://walidadebayo.netlify.app"
   },
+  
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

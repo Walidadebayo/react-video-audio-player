@@ -153,7 +153,7 @@ export default function Home() {
             </div>
             <div className="space-y-4">
               <h3 className="text-2xl font-bold">Audio Player</h3>
-              <AudioPlayer src="/Kingsman_The_Golden_Circle_2017_(2017)_BluRay_high_(fzmovies-rnkosm-VizXpress.mp3" />
+              <AudioPlayer src="https://cdn.pixabay.com/audio/2024/11/11/audio_889cf15c3c.mp3" />
             </div>
           </div>
         </div>
