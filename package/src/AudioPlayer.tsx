@@ -417,6 +417,14 @@ const AudioPlayer = ({
       }
     };
 
+    const handleProgress = () => {
+      const currentTime = waveSurfer.current?.getCurrentTime() || 0;
+      setCurrentTime(currentTime);
+      if (onProgress) {
+        onProgress(currentTime, duration);
+      }
+    };
+
     let cancelled = false;
 
     if (waveSurfer.current) {
@@ -492,6 +500,8 @@ const AudioPlayer = ({
           waveSurfer.current.on("play", handlePlay);
           waveSurfer.current.on("pause", handlePause);
           waveSurfer.current.on("error", handleError);
+          waveSurfer.current.on("audioprocess", handleProgress);
+          waveSurfer.current.on("timeupdate", handleProgress);
           const media =
             waveSurfer.current.getMediaElement &&
             waveSurfer.current.getMediaElement();
@@ -529,6 +539,8 @@ const AudioPlayer = ({
           ws.un("pause", handlePause);
           ws.un("seeking", handleSeeked);
           ws.un("error", handleError);
+          ws.un("audioprocess", handleProgress);
+          ws.un("timeupdate", handleProgress);
           if (!controls) {
             ws.un("click", handleClick);
           }
@@ -567,6 +579,7 @@ const AudioPlayer = ({
     onPlay,
     onPause,
     onSeeked,
+    onProgress,
     duration,
     controls,
     seekTo,
@@ -581,22 +594,6 @@ const AudioPlayer = ({
       if (onPlaybackRateChange) onPlaybackRateChange(speed);
     }
   };
-
-  useEffect(() => {
-    const handleProgress = () => {
-      const currentTime = waveSurfer.current?.getCurrentTime() || 0;
-      setCurrentTime(currentTime);
-      if (onProgress) {
-        onProgress(currentTime, duration);
-      }
-    };
-    waveSurfer.current?.on("audioprocess", handleProgress);
-    return () => {
-      if (waveSurfer.current) {
-        waveSurfer.current.un("audioprocess", handleProgress);
-      }
-    };
-  }, [onProgress, duration]);
 
   useEffect(() => {
     if (getWaveSurferRef && waveSurfer.current) {
