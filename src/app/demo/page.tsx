@@ -142,7 +142,8 @@ export default function DemoPage() {
               Interactive playground for the full component set
             </div>
             <h1 className="text-4xl font-black tracking-tight sm:text-5xl">
-              Tune the player live, then drop the exact configuration into your app.
+              Tune the player live, then drop the exact configuration into your
+              app.
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
               Adjust video and audio settings side-by-side, test the control
@@ -177,12 +178,23 @@ export default function DemoPage() {
               {[
                 { label: "Accent color", value: "Customize the primary color" },
                 { label: "Controls", value: "Show or hide specific controls" },
-                { label: "Shortcuts", value: "Enable or disable keyboard shortcuts" },
-                { label: "Download button", value: "Toggle the download option for media" },
+                {
+                  label: "Shortcuts",
+                  value: "Enable or disable keyboard shortcuts",
+                },
+                {
+                  label: "Download button",
+                  value: "Toggle the download option for media",
+                },
               ].map((item) => (
-                <div key={item.label} className="rounded-2xl border border-border/60 bg-muted/40 p-4">
+                <div
+                  key={item.label}
+                  className="rounded-2xl border border-border/60 bg-muted/40 p-4"
+                >
                   <div className="text-sm font-semibold">{item.label}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">{item.value}</div>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    {item.value}
+                  </div>
                 </div>
               ))}
             </CardContent>
@@ -191,7 +203,7 @@ export default function DemoPage() {
 
         <div className="grid gap-8">
           <section>
-            <Card className="overflow-hidden border-border/60 bg-card/80 shadow-lg backdrop-blur">
+            <Card className=" border-border/60 bg-card/80 shadow-lg backdrop-blur">
               <CardHeader className="border-b border-border/60 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10">
                 <CardTitle className="text-3xl">Video Player</CardTitle>
                 <CardDescription className="text-base">
@@ -247,7 +259,9 @@ export default function DemoPage() {
                       <div className="mt-1 flex gap-2">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="outline">Controls to Exclude</Button>
+                            <Button variant="outline">
+                              Controls to Exclude
+                            </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent className="w-56">
                             <DropdownMenuLabel>
@@ -257,7 +271,9 @@ export default function DemoPage() {
                             {videoControlsList.map((control) => (
                               <DropdownMenuCheckboxItem
                                 key={control}
-                                checked={videoControlsToExclude.includes(control)}
+                                checked={videoControlsToExclude.includes(
+                                  control,
+                                )}
                                 onCheckedChange={(checked) => {
                                   if (checked) {
                                     setVideoControlsToExclude([
@@ -395,7 +411,7 @@ export default function DemoPage() {
           </section>
 
           <section>
-            <Card className="overflow-hidden border-border/60 bg-card/80 shadow-lg backdrop-blur">
+            <Card className=" border-border/60 bg-card/80 shadow-lg backdrop-blur">
               <CardHeader className="border-b border-border/60 bg-gradient-to-br from-emerald-500/10 via-transparent to-teal-500/10">
                 <CardTitle className="text-3xl">Audio Player</CardTitle>
                 <CardDescription className="text-base">
@@ -440,7 +456,9 @@ export default function DemoPage() {
                       <div className="mt-1 flex gap-2">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="outline">Controls to Exclude</Button>
+                            <Button variant="outline">
+                              Controls to Exclude
+                            </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent className="w-56">
                             <DropdownMenuLabel>
@@ -450,7 +468,9 @@ export default function DemoPage() {
                             {audioControlsList.map((control) => (
                               <DropdownMenuCheckboxItem
                                 key={control}
-                                checked={audioControlsToExclude.includes(control)}
+                                checked={audioControlsToExclude.includes(
+                                  control,
+                                )}
                                 onCheckedChange={(checked) => {
                                   if (checked) {
                                     setAudioControlsToExclude([
