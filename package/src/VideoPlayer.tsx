@@ -10,6 +10,7 @@ import React, {
 import { formatTime, playbackRateOptions } from "./lib/utils";
 import Select from "./components/Select";
 import Dropdown from "./components/Dropdown";
+import { useInView } from "./lib/useInView";
 import "./video-audio-player.css";
 import { updateRangeBackground } from "./lib/utils";
 
@@ -52,6 +53,25 @@ export interface Track {
   label: string;
   srclang: string;
   default?: boolean;
+}
+
+export interface VideoPreviewOptions {
+   mode?: "clip" | "random";
+  duration?: number;
+  start?: number; // only used in "clip" mode
+  loop?: boolean;
+}
+
+export interface PlaylistItem {
+  src: string;
+  duration: number; // duration of this playlist item in seconds
+  start?: number; // optional start time for same-source clips (seconds)
+  end?: number; // optional end time for same-source clips (seconds)
+}
+
+export interface PlaylistConfig {
+  items: PlaylistItem[];
+  loop?: boolean; // loop entire playlist when reaching the end (default: false)
 }
 
 export interface VideoPlayerProps {
@@ -98,6 +118,9 @@ export interface VideoPlayerProps {
   getVideoRef?: (ref: HTMLVideoElement | null) => void;
   onTrackChange?: (track: TextTrack | null) => void;
   generatePosterAt?: number;
+  preview?: VideoPreviewOptions;
+  playlist?: PlaylistConfig;
+  maxAutoPlayDuration?: number;
 }
 
 const VideoPlayer = ({
@@ -109,7 +132,7 @@ const VideoPlayer = ({
   muted = false,
   loop = false,
   playsInline = true,
-  poster = "",
+  poster = undefined,
   width = "100%",
   height = "100%",
   className = "",
@@ -144,20 +167,23 @@ const VideoPlayer = ({
   tracks,
   onTrackChange,
   generatePosterAt,
+  preview,
+  playlist,
+  maxAutoPlayDuration,
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(videoContainerRef);
   const mountedRef = useRef(true);
   const lastVolumeRef = useRef<number>(defaultVolume);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(muted);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isPortrait, setIsPortrait] = useState(false);
   const [volume, setVolume] = useState(defaultVolume);
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showControls, setShowControls] = useState(true);
-  const controlTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const controlTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [videoError, setVideoError] = useState(false);
   const [duration, setDuration] = useState(0);
   const [ios, setIos] = useState(false);
@@ -172,8 +198,26 @@ const VideoPlayer = ({
   const [reverseCurrentTime, setReverseCurrentTime] = useState(false);
   const [availableTracks, setAvailableTracks] = useState<TextTrack[]>([]);
   const [currentTrack, setCurrentTrack] = useState<TextTrack | null>(null);
+  const [shouldLoadMedia, setShouldLoadMedia] = useState(false);
   const playbackRateRef = useRef(playbackRate);
   const volumeRef = useRef(volume);
+  const previewStopRef = useRef<number | null>(null);
+  const previewStartRef = useRef<number | null>(null);
+  const [currentPlaylistIndex, setCurrentPlaylistIndex] = useState(0);
+  const [playlistConfig, setPlaylistConfig] = useState<
+    PlaylistConfig | undefined
+  >(playlist);
+  const playlistItemDurationsRef = useRef<number[]>([]);
+  const [playlistTotalDuration, setPlaylistTotalDuration] = useState<number>(0);
+  const pendingSeekRef = useRef<{ index: number; time: number } | null>(null);
+  const pendingPlayAfterSourceChangeRef = useRef(false);
+
+  const previewConfig = typeof preview === "object" ? preview : undefined;
+  const isPreviewEnabled = Boolean(previewConfig); //if preview prop is provided and is an object, then preview mode is enabled
+  const previewMode = previewConfig?.mode ?? "clip";
+  const previewDuration = Math.max(1, previewConfig?.duration ?? 10);
+  const previewStart = Math.max(0, previewConfig?.start ?? 0);
+  const previewLoop = previewConfig?.loop ?? false;
 
   useEffect(() => {
     if (typeof window !== "undefined" && typeof navigator !== "undefined") {
@@ -182,6 +226,28 @@ const VideoPlayer = ({
       }
     }
   }, []);
+
+  useEffect(() => {
+    setPlaylistConfig(playlist);
+    if (playlist && playlist.items.length > 0) {
+      setCurrentPlaylistIndex(0);
+      // use provided durations from playlist items
+      playlistItemDurationsRef.current = playlist.items.map(
+        (it) => it.duration || 0,
+      );
+
+      const total = playlistItemDurationsRef.current.reduce((a, b) => a + b, 0);
+      setPlaylistTotalDuration(total);
+      // set displayed duration to total from the start
+      if (total > 0) setDuration(total);
+    }
+  }, [playlist]);
+
+  useEffect(() => {
+    if (isInView) {
+      setShouldLoadMedia(true);
+    }
+  }, [isInView]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -194,7 +260,7 @@ const VideoPlayer = ({
     if (videoRef.current && defaultPlaybackRate && duration) {
       const newPlaybackRate = Math.min(
         Math.max(defaultPlaybackRate || 1, 0.0625),
-        16
+        16,
       );
       setPlaybackRate(newPlaybackRate);
       videoRef.current.playbackRate = newPlaybackRate;
@@ -227,10 +293,10 @@ const VideoPlayer = ({
       if (videoRef.current && duration && !poster) {
         try {
           const videoElementClone =
-            videoRef.current.cloneNode() as HTMLVideoElement;
+          videoRef.current.cloneNode() as HTMLVideoElement;
           videoElementClone.crossOrigin = "anonymous";
           await new Promise(
-            (resolve) => (videoElementClone.onloadedmetadata = resolve)
+            (resolve) => (videoElementClone.onloadedmetadata = resolve),
           );
 
           const canvas = document.createElement("canvas");
@@ -243,21 +309,23 @@ const VideoPlayer = ({
             try {
               videoElementClone.currentTime = time;
               await new Promise(
-                (resolve) => (videoElementClone.onseeked = resolve)
+                (resolve) => (videoElementClone.onseeked = resolve),
               );
               ctx.drawImage(
                 videoElementClone,
                 0,
                 0,
                 canvas.width,
-                canvas.height
+                canvas.height,
               );
               const dataUrl = canvas.toDataURL();
+              console.log(dataUrl);
+              
               if (videoRef.current) videoRef.current.poster = dataUrl;
             } catch (err) {
               console.warn(
                 "Could not generate poster (CORS or seek issue)",
-                err
+                err,
               );
             }
           }
@@ -278,21 +346,81 @@ const VideoPlayer = ({
     const videoElement = videoRef.current;
 
     const handleLoadedMetadata = () => {
-      const duration = videoElement?.duration || 0;
-      // detect portrait orientation from video metadata
-      try {
-        const vw = videoElement?.videoWidth || 0;
-        const vh = videoElement?.videoHeight || 0;
-        if (vw && vh) setIsPortrait(vh > vw);
-      } catch {
-        // ignore metadata read errors
-      }
-      setDuration(duration);
-      if (onReady) {
-        onReady();
-      }
-      if (onDuration) {
-        onDuration(duration);
+      if (!videoElement) return;
+      const mediaDuration = videoElement.duration || 0;
+
+      // If we have a playlist, use the provided durations
+      if (playlistConfig && playlistConfig.items.length > 0) {
+        const idx = currentPlaylistIndex;
+        const currentItem = playlistConfig.items[idx];
+
+        // Use the duration field from the playlist item
+        playlistItemDurationsRef.current[idx] = currentItem.duration || 0;
+        const total = playlistItemDurationsRef.current.reduce(
+          (a, b) => a + b,
+          0,
+        );
+        setPlaylistTotalDuration(total);
+        setDuration(total);
+
+        if (onReady) onReady();
+        if (onDuration) onDuration(total);
+
+        // Seek handling: if a pending seek was requested for this index, apply it
+        if (pendingSeekRef.current && pendingSeekRef.current.index === idx) {
+          const within = pendingSeekRef.current.time;
+          const target = (currentItem.start || 0) + within;
+          try {
+            videoElement.currentTime = target;
+          } catch {
+            // ignore seek errors
+          }
+          pendingSeekRef.current = null;
+        } else if (currentItem.start) {
+          try {
+            videoElement.currentTime = currentItem.start;
+          } catch {
+            // ignore seek errors
+          }
+        }
+
+        if (pendingPlayAfterSourceChangeRef.current) {
+          pendingPlayAfterSourceChangeRef.current = false;
+          videoElement
+            .play()
+            .then(() => setIsPlaying(true))
+            .catch(() => setIsPlaying(false));
+        }
+
+        const isAutoplayAllowed =
+          autoPlay &&
+          !isPreviewEnabled &&
+          (!maxAutoPlayDuration || total <= maxAutoPlayDuration);
+
+        if (isAutoplayAllowed && videoElement) {
+          videoElement
+            .play()
+            .then(() => setIsPlaying(true))
+            .catch(() => setIsPlaying(false));
+        }
+      } else {
+        // non-playlist behavior -- previous behavior
+        const durationVal = mediaDuration || 0;
+        setDuration(durationVal);
+        if (onReady) onReady();
+        if (onDuration) onDuration(durationVal);
+
+        const isAutoplayAllowed =
+          autoPlay &&
+          !isPreviewEnabled &&
+          (!maxAutoPlayDuration || durationVal <= maxAutoPlayDuration);// if autoplay is enabled, preview is not enabled, and either there's no max duration limit or the media duration is within that limit
+
+        if (isAutoplayAllowed && videoElement) {
+          videoElement
+            .play()
+            .then(() => setIsPlaying(true))
+            .catch(() => setIsPlaying(false));
+        }
       }
     };
 
@@ -304,11 +432,19 @@ const VideoPlayer = ({
       if (videoElement) {
         videoElement.removeEventListener(
           "loadedmetadata",
-          handleLoadedMetadata
+          handleLoadedMetadata,
         );
       }
     };
-  }, [onReady, onDuration]);
+  }, [
+    onReady,
+    onDuration,
+    autoPlay,
+    isPreviewEnabled,
+    maxAutoPlayDuration,
+    currentPlaylistIndex,
+    playlistConfig,
+  ]);
 
   useEffect(() => {
     const timelineInput = timelineInputRef.current;
@@ -342,6 +478,108 @@ const VideoPlayer = ({
         if (onProgress) {
           onProgress(videoElement.currentTime, videoElement.duration);
         }
+
+        // Playlist-aware aggregated time and auto-advance logic
+        if (
+          playlistConfig &&
+          playlistConfig.items.length > 0 &&
+          currentPlaylistIndex >= 0 &&
+          currentPlaylistIndex < playlistConfig.items.length
+        ) {
+          const currentItem = playlistConfig.items[currentPlaylistIndex];
+          const prevTotal = playlistItemDurationsRef.current
+            .slice(0, currentPlaylistIndex)
+            .reduce((a, b) => a + b, 0);
+          const itemStart = currentItem.start || 0;
+          let itemElapsed = videoElement.currentTime - itemStart;
+          if (itemElapsed < 0) itemElapsed = 0;
+          const aggregatedTime = prevTotal + itemElapsed;
+          setCurrentTime(aggregatedTime);
+          updateRangeBackground(
+            timelineInputRef.current,
+            aggregatedTime,
+            playlistTotalDuration || videoElement.duration,
+          );
+          if (onProgress)
+            onProgress(
+              aggregatedTime,
+              playlistTotalDuration || videoElement.duration,
+            );
+
+          // If item has explicit end time, advance when reached
+          if (
+            typeof currentItem.end === "number" &&
+            videoElement.currentTime >= currentItem.end
+          ) {
+            const nextIndex = currentPlaylistIndex + 1;
+            if (nextIndex < playlistConfig.items.length) {
+              const nextItem = playlistConfig.items[nextIndex];
+              pendingPlayAfterSourceChangeRef.current = true;
+              setCurrentPlaylistIndex(nextIndex);
+              if (
+                nextItem.src === currentItem.src &&
+                typeof nextItem.start === "number"
+              ) {
+                pendingPlayAfterSourceChangeRef.current = false;
+                videoElement.currentTime = nextItem.start;
+                videoElement.play().catch(() => {});
+              } else {
+                // different source: effect will load next source
+              }
+            } else if (playlistConfig.loop) {
+              pendingPlayAfterSourceChangeRef.current = true;
+              setCurrentPlaylistIndex(0);
+              const firstItem = playlistConfig.items[0];
+              if (firstItem.src === currentItem.src) {
+                videoElement.currentTime = firstItem.start || 0;
+                videoElement.play().catch(() => {});
+              }
+            } else {
+              setIsPlaying(false);
+              if (onEnded) onEnded();
+              setShowControls(true);
+            }
+            return;
+          }
+
+          // Natural end of the media
+          if (
+            videoElement.duration > 0 &&
+            videoElement.currentTime >= videoElement.duration
+          ) {
+            const nextIndex = currentPlaylistIndex + 1;
+            if (nextIndex < playlistConfig.items.length) {
+              const nextItem = playlistConfig.items[nextIndex];
+              pendingPlayAfterSourceChangeRef.current = true;
+              setCurrentPlaylistIndex(nextIndex);
+              if (
+                nextItem.src === currentItem.src &&
+                typeof nextItem.start === "number"
+              ) {
+                pendingPlayAfterSourceChangeRef.current = false;
+                videoElement.currentTime = nextItem.start;
+                videoElement.play().catch(() => {});
+              } else {
+                // different source: effect will load next source
+              }
+              return;
+            } else if (playlistConfig.loop) {
+              pendingPlayAfterSourceChangeRef.current = true;
+              setCurrentPlaylistIndex(0);
+              const firstItem = playlistConfig.items[0];
+              if (firstItem.src === currentItem.src) {
+                pendingPlayAfterSourceChangeRef.current = false;
+                videoElement.currentTime = firstItem.start || 0;
+              }
+              return;
+            }
+            if (onEnded) onEnded();
+            setShowControls(true);
+          }
+          return;
+        }
+
+        // Non-playlist fallback: preserve existing behavior
         if (videoElement.currentTime === videoElement.duration) {
           setIsPlaying(false);
           if (onEnded) {
@@ -367,7 +605,13 @@ const VideoPlayer = ({
         videoElement.removeEventListener("error", handleError);
       }
     };
-  }, [onProgress, onEnded]);
+  }, [
+    onProgress,
+    onEnded,
+    playlistConfig,
+    currentPlaylistIndex,
+    playlistTotalDuration,
+  ]);
 
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -380,13 +624,6 @@ const VideoPlayer = ({
       resetControlTimeout();
     };
 
-    if (autoPlay) {
-      setIsPlaying(true);
-      if (muted && videoElement) {
-        videoElement.muted = true;
-      }
-    }
-
     const handlePause = () => {
       setIsPlaying(false);
       if (onPause) {
@@ -396,6 +633,9 @@ const VideoPlayer = ({
     };
 
     const handleEnded = () => {
+      if (playlistConfig?.items?.length) {
+        return;
+      }
       if (onEnded) {
         onEnded();
       }
@@ -459,11 +699,11 @@ const VideoPlayer = ({
         if (typeof videoElement.requestPictureInPicture === "function") {
           videoElement.addEventListener(
             "enterpictureinpicture",
-            handlePictureInPictureChange
+            handlePictureInPictureChange,
           );
           videoElement.addEventListener(
             "leavepictureinpicture",
-            handlePictureInPictureChange
+            handlePictureInPictureChange,
           );
         }
       } catch {
@@ -482,16 +722,16 @@ const VideoPlayer = ({
         videoElement.removeEventListener("volumechange", handleVolumeChange);
         document.removeEventListener(
           "fullscreenchange",
-          handleFullscreenChange
+          handleFullscreenChange,
         );
         try {
           videoElement.removeEventListener(
             "enterpictureinpicture",
-            handlePictureInPictureChange
+            handlePictureInPictureChange,
           );
           videoElement.removeEventListener(
             "leavepictureinpicture",
-            handlePictureInPictureChange
+            handlePictureInPictureChange,
           );
         } catch {
           // ignore
@@ -511,6 +751,9 @@ const VideoPlayer = ({
     resetControlTimeout,
     autoPlay,
     muted,
+    isPreviewEnabled,
+    maxAutoPlayDuration,
+    playlistConfig?.items?.length,
   ]);
 
   useEffect(() => {
@@ -521,16 +764,105 @@ const VideoPlayer = ({
 
   useEffect(() => {
     const videoElement = videoRef.current;
-    if (videoElement && src) {
-      videoElement.src = src;
-      videoElement.load();
-      if (videoElement.error) {
-        setVideoError(true);
-      } else {
-        setVideoError(false);
+    if (videoElement && shouldLoadMedia) {
+      let srcToLoad = src;
+      let sourcesToLoad = sources;
+      let startTime = 0;
+
+      // If playlist is active, use current playlist item
+      if (
+        playlistConfig &&
+        playlistConfig.items.length > 0 &&
+        currentPlaylistIndex >= 0 &&
+        currentPlaylistIndex < playlistConfig.items.length
+      ) {
+        const currentItem = playlistConfig.items[currentPlaylistIndex];
+        srcToLoad = currentItem.src;
+        sourcesToLoad = undefined; // single src from playlist
+        startTime = currentItem.start || 0;
+      }
+
+      if (srcToLoad || sourcesToLoad?.length) {
+        if (srcToLoad) {
+          videoElement.src = srcToLoad;
+        }
+        videoElement.load();
+        if (startTime > 0) {
+          videoElement.currentTime = startTime;
+        }
+        if (videoElement.error) {
+          setVideoError(true);
+        } else {
+          setVideoError(false);
+        }
       }
     }
-  }, [src]);
+  }, [src, sources, shouldLoadMedia, playlistConfig, currentPlaylistIndex]);
+
+  useEffect(() => {
+    if (!isPreviewEnabled || !videoRef.current || !duration || !previewDuration)
+      return;
+    const vid = videoRef.current;
+    const maxStart = Math.max(0, duration - previewDuration);
+    let start = 0;
+    if (previewMode === "random") {
+      start = Math.random() * maxStart;
+    } else {
+      const s = typeof previewStart === "number" ? previewStart : 0;
+      start = Math.min(Math.max(0, s), maxStart);
+    }
+    previewStartRef.current = start;
+    const stopAt = Math.min(duration, start + previewDuration);
+    previewStopRef.current = stopAt;
+    try {
+      vid.currentTime = start;
+    } catch {
+      /* ignore seek errors */
+    }
+
+    const onTime = () => {
+      try {
+        if (vid.currentTime >= stopAt) {
+          if (previewLoop) {
+            if (previewMode === "random") {
+              const nextStart =
+                Math.random() * Math.max(0, duration - previewDuration);
+              previewStartRef.current = nextStart;
+              previewStopRef.current = nextStart + previewDuration;
+              vid.currentTime = nextStart;
+              vid.play().catch(() => {});
+            } else {
+              vid.currentTime = start;
+              vid.play().catch(() => {});
+            }
+          } else {
+            vid.pause();
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
+    vid.addEventListener("timeupdate", onTime);
+    vid.play().catch(() => {});
+
+    return () => {
+      try {
+        vid.removeEventListener("timeupdate", onTime);
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [
+    isPreviewEnabled,
+    previewMode,
+    previewDuration,
+    previewStart,
+    previewLoop,
+    duration,
+    src,
+  ]);
 
   const fetchSubtitleBlobUrl = async (url: string): Promise<string> => {
     try {
@@ -544,7 +876,7 @@ const VideoPlayer = ({
           srtText
             .replace(
               /(\d+)\n(\d{2}:\d{2}:\d{2}),(\d{3}) --> (\d{2}:\d{2}:\d{2}),(\d{3})/g,
-              "$1\n$2.$3 --> $4.$5"
+              "$1\n$2.$3 --> $4.$5",
             )
             .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2");
         blob = new Blob([vttText], { type: "text/vtt" });
@@ -560,7 +892,7 @@ const VideoPlayer = ({
     const videoElement = videoRef.current;
     if (videoElement && tracks?.length && src) {
       Array.from(videoElement.querySelectorAll("track")).forEach((t) =>
-        t.remove()
+        t.remove(),
       );
 
       const blobUrls: string[] = [];
@@ -657,10 +989,43 @@ const VideoPlayer = ({
   };
 
   const handleTimelineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (videoRef.current) {
-      const newTime = parseFloat(e.target.value);
-      videoRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
+    const newTime = parseFloat(e.target.value);
+    if (playlistConfig && playlistConfig.items.length > 0) {
+      // Map aggregated time to playlist item
+      const durations = playlistItemDurationsRef.current;
+      let cumulative = 0;
+      for (let i = 0; i < playlistConfig.items.length; i++) {
+        const d = durations[i] || 0;
+        if (
+          newTime <= cumulative + d ||
+          i === playlistConfig.items.length - 1
+        ) {
+          const within = Math.max(0, newTime - cumulative);
+          const item = playlistConfig.items[i];
+          const seekTo = (item.start || 0) + within;
+          if (i === currentPlaylistIndex) {
+            if (videoRef.current) videoRef.current.currentTime = seekTo;
+          } else {
+            pendingSeekRef.current = { index: i, time: within };
+            pendingPlayAfterSourceChangeRef.current = isPlaying;
+            setCurrentPlaylistIndex(i);
+          }
+          setCurrentTime(newTime);
+          updateRangeBackground(
+            timelineInputRef.current,
+            newTime,
+            playlistTotalDuration || 0,
+          );
+          if (onProgress) onProgress(newTime, playlistTotalDuration || 0);
+          break;
+        }
+        cumulative += d;
+      }
+    } else {
+      if (videoRef.current) {
+        videoRef.current.currentTime = newTime;
+        setCurrentTime(newTime);
+      }
     }
     resetControlTimeout();
   };
@@ -674,7 +1039,7 @@ const VideoPlayer = ({
       }
       resetControlTimeout();
     },
-    [resetControlTimeout, onPlaybackRateChange]
+    [resetControlTimeout, onPlaybackRateChange],
   );
 
   const togglePlay = useCallback(() => {
@@ -758,7 +1123,7 @@ const VideoPlayer = ({
         resetControlTimeout();
       }
     },
-    [resetControlTimeout]
+    [resetControlTimeout],
   );
 
   const togglePictureInPicture = useCallback(async () => {
@@ -779,7 +1144,7 @@ const VideoPlayer = ({
           const p = maybePip.requestPictureInPicture();
           if (p && typeof p.catch === "function")
             p.catch((err: unknown) =>
-              console.warn("requestPictureInPicture failed", err)
+              console.warn("requestPictureInPicture failed", err),
             );
         } else {
           console.warn("Picture-in-Picture is not supported by this browser.");
@@ -793,7 +1158,7 @@ const VideoPlayer = ({
   }, [resetControlTimeout]);
 
   const handleVideoClick = (
-    e: React.MouseEvent<HTMLDivElement | HTMLVideoElement>
+    e: React.MouseEvent<HTMLDivElement | HTMLVideoElement>,
   ) => {
     const target = e.target as HTMLElement;
     if (
@@ -808,7 +1173,7 @@ const VideoPlayer = ({
   };
 
   const handleVideoDoubleClick = (
-    e: React.MouseEvent<HTMLDivElement | HTMLVideoElement>
+    e: React.MouseEvent<HTMLDivElement | HTMLVideoElement>,
   ) => {
     const target = e.target as HTMLElement;
     if (
@@ -832,13 +1197,14 @@ const VideoPlayer = ({
   };
 
   const handleTimelineMouseMove = async (
-    e: React.MouseEvent<HTMLInputElement>
+    e: React.MouseEvent<HTMLInputElement>,
   ) => {
     const timeline = e.currentTarget;
     const rect = timeline.getBoundingClientRect();
     const position = e.clientX - rect.left;
     const percentage = position / rect.width;
-    const time = (videoRef.current?.duration || 0) * percentage;
+    const effectiveDuration = duration || 0;
+    const time = effectiveDuration * percentage;
     setHoverTime(time);
     setHoverPosition(position);
   };
@@ -935,18 +1301,18 @@ const VideoPlayer = ({
             current === 1
               ? 1.25
               : current === 1.25
-              ? 1.5
-              : current === 1.5
-              ? 1.75
-              : current === 1.75
-              ? 2
-              : current === 2
-              ? 0.25
-              : current === 0.25
-              ? 0.5
-              : current === 0.5
-              ? 0.75
-              : 1;
+                ? 1.5
+                : current === 1.5
+                  ? 1.75
+                  : current === 1.75
+                    ? 2
+                    : current === 2
+                      ? 0.25
+                      : current === 0.25
+                        ? 0.5
+                        : current === 0.5
+                          ? 0.75
+                          : 1;
           handleSpeedChange(speedRate);
           if (onPlaybackRateChange) onPlaybackRateChange(speedRate);
           break;
@@ -1066,7 +1432,7 @@ const VideoPlayer = ({
         }
         className={`video-player-wrapper ${
           isFullscreen ? "fullscreen-container" : ""
-        } ${isPortrait && isFullscreen ? "portrait" : ""}`}
+        }`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -1076,7 +1442,7 @@ const VideoPlayer = ({
           }`}
         >
           <video
-            src={src}
+            src={shouldLoadMedia ? src : undefined}
             ref={videoRef}
             {...(className && { className })}
             onClick={handleVideoClick}
@@ -1084,23 +1450,27 @@ const VideoPlayer = ({
               disableDoubleClick ? undefined : handleVideoDoubleClick
             }
             id="video"
-            autoPlay={autoPlay}
+            autoPlay={autoPlay && !isPreviewEnabled && !maxAutoPlayDuration}
             muted={isMuted}
-            loop={loop}
+            loop={Boolean(
+              loop && !(playlistConfig && playlistConfig.items.length > 0),
+            )}
             playsInline={playsInline}
             poster={poster}
-            preload={preload}
+            preload={shouldLoadMedia ? preload : "none"}
             style={{
               ...style,
-              objectFit: "cover",
+              objectFit: "contain",
               cursor: controls ? "pointer" : "default",
               minHeight: "180px",
+              maxHeight: "100dvh",
               width,
               height,
             }}
             role="video"
           >
-            {sources &&
+            {shouldLoadMedia &&
+              sources &&
               sources.map(({ src, type }) => (
                 <source key={src} src={src} type={type} />
               ))}
@@ -1112,7 +1482,8 @@ const VideoPlayer = ({
             </div>
           )}
 
-          {videoError || (!src && !sources?.length) ? (
+          {videoError ||
+          (!src && !sources?.length && !playlistConfig?.items.length) ? (
             <div className="error-overlay">
               <div className="error-message">
                 <svg
@@ -1132,11 +1503,11 @@ const VideoPlayer = ({
                 </svg>
                 <span>
                   <strong>Error:</strong>{" "}
-                  {!src && !sources?.length
-                    ? "Please provide a video source URL or sources array."
+                  {!src && !sources?.length && !playlistConfig?.items.length
+                    ? "Please provide a video source URL, sources array, or playlist."
                     : customErrorMessage}
                 </span>
-                {(src || sources?.length) && (
+                {(src || sources?.length || playlistConfig?.items.length) && (
                   <button
                     onClick={() => {
                       if (videoRef.current) {
@@ -1338,7 +1709,7 @@ const VideoPlayer = ({
                         </button>
                       )}
                       {!controlsToExclude.includes(
-                        "bottom-playPause-button"
+                        "bottom-playPause-button",
                       ) && (
                         <button
                           onClick={togglePlay}
@@ -1516,7 +1887,7 @@ const VideoPlayer = ({
                                 ]
                               : []),
                           ].sort(
-                            (a, b) => parseFloat(a.label) - parseFloat(b.label)
+                            (a, b) => parseFloat(a.label) - parseFloat(b.label),
                           )}
                           value={playbackRate}
                           ariaLabel="Playback speed"
@@ -1524,7 +1895,7 @@ const VideoPlayer = ({
                           onClick={(value) => {
                             const newPlaybackRate = Math.min(
                               Math.max(Number(value) || 1, 0.0625),
-                              16
+                              16,
                             );
                             handleSpeedChange(newPlaybackRate);
                           }}
@@ -1704,7 +2075,7 @@ const VideoPlayer = ({
                             onClick: () =>
                               handleSourceDownloadClick(
                                 src,
-                                type.split("/")[1]
+                                type.split("/")[1],
                               ),
                           })) || []
                         }
@@ -1809,7 +2180,7 @@ const VideoPlayer = ({
                           onClick: () =>
                             handleSourceDownloadClick(
                               src,
-                              type.split("/")[1] || "mp4"
+                              type.split("/")[1] || "mp4",
                             ),
                         })) || []
                       }

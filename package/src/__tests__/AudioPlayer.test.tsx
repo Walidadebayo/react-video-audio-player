@@ -1,7 +1,81 @@
 import React from "react";
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { screen, fireEvent } from "@testing-library/dom";
 import AudioPlayer from "../AudioPlayer";
+
+const mockWaveSurferCreate = jest.fn(() => {
+  const handlers: Record<string, (...args: unknown[]) => void> = {};
+  const mediaElement = document.createElement("audio");
+  let playing = false;
+  let volume = 1;
+  let currentTime = 0;
+  const duration = 600;
+
+  const instance: Record<string, unknown> = {};
+
+  Object.assign(instance, {
+    on: jest.fn((event: string, handler: (...args: unknown[]) => void) => {
+      handlers[event] = handler;
+    }),
+    un: jest.fn((event: string) => {
+      delete handlers[event];
+    }),
+    destroy: jest.fn(),
+    play: jest.fn(() => {
+      playing = true;
+      handlers.play?.();
+      return Promise.resolve();
+    }),
+    pause: jest.fn(() => {
+      playing = false;
+      handlers.pause?.();
+    }),
+    playPause: jest.fn(() => {
+      if (playing) {
+        (instance.pause as jest.Mock)();
+      } else {
+        (instance.play as jest.Mock)();
+      }
+    }),
+    setMuted: jest.fn((muted: boolean) => {
+      mediaElement.muted = muted;
+    }),
+    setVolume: jest.fn((newVolume: number) => {
+      volume = newVolume;
+      mediaElement.volume = newVolume;
+      handlers.volumechange?.();
+    }),
+    getVolume: jest.fn(() => volume),
+    setPlaybackRate: jest.fn(),
+    getCurrentTime: jest.fn(() => currentTime),
+    setTime: jest.fn((newTime: number) => {
+      currentTime = newTime;
+      handlers.seeking?.();
+      handlers.timeupdate?.();
+    }),
+    seekTo: jest.fn((percent: number) => {
+      currentTime = duration * percent;
+      handlers.seeking?.();
+    }),
+    getDuration: jest.fn(() => duration),
+    getMediaElement: jest.fn(() => mediaElement),
+    stop: jest.fn(() => {
+      playing = false;
+      currentTime = 0;
+      handlers.finish?.();
+    }),
+    isPlaying: jest.fn(() => playing),
+  });
+
+  return instance;
+});
+
+jest.mock("wavesurfer.js", () => ({
+  __esModule: true,
+  default: {
+    create: mockWaveSurferCreate,
+  },
+}));
 
 // Mock matchMedia
 beforeAll(() => {
@@ -14,6 +88,11 @@ beforeAll(() => {
         removeListener: function () {},
       };
     };
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+  jest.clearAllMocks();
 });
 
 describe("AudioPlayer", () => {
@@ -61,5 +140,18 @@ describe("AudioPlayer", () => {
     const volumeSlider = screen.getByLabelText("Volume control");
     fireEvent.change(volumeSlider, { target: { value: "0.5" } });
     expect(volumeSlider).toHaveValue("0.5");
+  });
+
+  test("falls back to a plain audio element if waveform setup times out", async () => {
+    jest.useFakeTimers();
+
+    const { container } = render(<AudioPlayer {...defaultProps} />);
+
+    await act(async () => {
+      jest.advanceTimersByTime(3600);
+    });
+
+    expect(container.querySelector("audio")).toBeInTheDocument();
+    expect(mockWaveSurferCreate).not.toHaveBeenCalled();
   });
 });

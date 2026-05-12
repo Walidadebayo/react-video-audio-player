@@ -5,14 +5,14 @@
     "lib": ["DOM", "ESNext"],
     "jsx": "react",
     "declaration": true,
-    "outDir": "./dist",
+    "outDir": "dist",
     "strict": true,
-    "moduleResolution": "node",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node"
   },
   "include": ["src"],
   "exclude": ["node_modules", "**/__tests__/*", "src/setupTests.ts"]

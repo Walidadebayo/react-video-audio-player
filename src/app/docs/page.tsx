@@ -1,5 +1,20 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Layers3,
+  MicVocal,
+  PlayCircle,
+  ShieldCheck,
+  Sparkles,
+  SquarePlay,
+} from "lucide-react";
+import {
   Table,
   TableBody,
   TableCaption,
@@ -12,22 +27,114 @@ import { audioProps, videoProps } from "@/lib/utils";
 import CodeHighlighter from "@/components/ui/CodeHighlighter";
 import Link from "next/link";
 import { Metadata } from "next";
+
 export const metadata: Metadata = {
   title: "Documentation | React Video Audio Player",
   description:
     "Explore the documentation for React Video Audio Player, a powerful and customisable media player for React applications.",
-  keywords:
-    "React, documentation, video player, audio player, React Video Audio Player, guide, features, API, react video audio player documentation",
 };
+
+const docsHighlights = [
+  {
+    icon: PlayCircle,
+    title: "Video player",
+    description:
+      "Multiple sources, playlist timelines, captions, previews, fullscreen, PiP, and custom control visibility.",
+  },
+  {
+    icon: MicVocal,
+    title: "Audio player",
+    description:
+      "Waveform playback, peaks loading, keyboard shortcuts, volume, speed, and graceful fallback rendering.",
+  },
+  {
+    icon: Layers3,
+    title: "Playlist support",
+    description:
+      "Treat multiple clips like one continuous experience with total duration and seek mapping.",
+  },
+  {
+    icon: Sparkles,
+    title: "Preview mode",
+    description:
+      "Expose clip-only or random previews for sampling, teasers, and gated playback flows.",
+  },
+  {
+    icon: SquarePlay,
+    title: "Poster generation",
+    description:
+      "Generate posters from any chosen timestamp to make embeds, demos, and listings feel finished.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Safer defaults",
+    description:
+      "Lazy load when visible and cap autoplay for oversized media so behaviour stays predictable.",
+  },
+];
 
 export default function DocsPage() {
   return (
-    <div className="container mx-auto px-4 py-12 md:px-6 lg:px-8">
-      <div className="prose prose-gray dark:prose-invert max-w-none">
-        <h1 className="text-4xl font-bold mb-8">Documentation</h1>
+    <div className="relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.12),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),_transparent_28%)]" />
+      <div className="mx-auto flex w-full max-w-[100rem] flex-col gap-16 px-4 py-12 md:px-6 lg:px-8">
+        <section className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-sm text-muted-foreground shadow-sm backdrop-blur">
+              <Sparkles className="h-4 w-4 text-cyan-500" />
+              Everything you need to ship a polished media player
+            </div>
+            <div className="space-y-4">
+              <h1 className="max-w-3xl text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl">
+                Documentation that focuses on what the package actually does.
+              </h1>
+              <p className="max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
+                This package is more than a wrapper around a media element. It
+                gives you playlist-aware video, preview clips, subtitle tracks,
+                poster generation, waveform audio, downloads, shortcuts, and
+                sensible loading behaviour.
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-border/60 bg-card/80 p-4 shadow-lg backdrop-blur">
+              <p className="mb-3 text-sm font-medium text-muted-foreground">
+                Quick install
+              </p>
+              <CodeHighlighter language="bash" showLineNumbers={false}>
+                npm install react-video-audio-player
+              </CodeHighlighter>
+            </div>
+          </div>
+
+          <Card className="border-border/60 bg-card/80 shadow-xl shadow-cyan-950/10 backdrop-blur">
+            <CardHeader className="space-y-3 border-b border-border/60 bg-gradient-to-br from-cyan-500/10 via-transparent to-emerald-500/10">
+              <CardTitle className="text-2xl">At a glance</CardTitle>
+              <CardDescription className="text-base">
+                The docs are centered around the behaviors that help the player
+                stand out in real applications.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 p-6 sm:grid-cols-2">
+              {docsHighlights.map(({ icon: Icon, title, description }) => (
+                <div
+                  key={title}
+                  className="rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm"
+                >
+                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <h2 className="text-base font-semibold">{title}</h2>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {description}
+                  </p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
 
         <Tabs defaultValue="video" className="w-full">
-          <TabsList className="mb-8">
+          <TabsList className="mb-8 grid w-full grid-cols-3 rounded-2xl bg-muted p-1">
             <TabsTrigger value="video">Video Player</TabsTrigger>
             <TabsTrigger value="audio">Audio Player</TabsTrigger>
             <TabsTrigger value="examples">Examples</TabsTrigger>
@@ -35,10 +142,17 @@ export default function DocsPage() {
 
           <TabsContent value="video">
             <div className="space-y-8">
-              <section>
-                <h2 className="text-3xl font-bold mb-4">Video Player Props</h2>
+              <Card className="border-border/60 bg-card/80 shadow-sm backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-3xl">Video Player Props</CardTitle>
+                  <CardDescription className="text-base">
+                    Core configuration for video playback, source handling, and
+                    media-specific interactions.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
                 <CodeHighlighter>
-                  {`import { VideoPlayerProps, preload, VideoControlOptionsToRemove, VideoMimeType, sources } from "react-video-audio-player";`}
+                  {`import { VideoPlayerProps, VideoPreviewOptions, PlaylistItem, PlaylistConfig, preload, VideoControlOptionsToRemove, VideoMimeType, sources } from "react-video-audio-player";`}
                 </CodeHighlighter>
                 <div className="overflow-x-auto">
                   <Table>
@@ -70,7 +184,7 @@ export default function DocsPage() {
                           <TableCell className="p-4">
                             <div
                               dangerouslySetInnerHTML={{
-                                __html: prop.description,
+                                __html: prop.description || "",
                               }}
                             />
                           </TableCell>
@@ -79,10 +193,14 @@ export default function DocsPage() {
                     </TableBody>
                   </Table>
                 </div>
-              </section>
+                </CardContent>
+              </Card>
 
-              <section>
-                <h2 className="text-3xl font-bold mb-4">Example Usage</h2>
+              <Card className="border-border/60 bg-card/80 shadow-sm backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-3xl">Example Usage</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
                 <CodeHighlighter>
                   {`import { VideoPlayer } from 'react-video-audio-player';
 
@@ -97,14 +215,41 @@ function App() {
       width="100%"
       height="auto"
       accentColor="#60a5fa"
+      maxAutoPlayDuration={60}
+      preview={{ mode: 'clip', start: 15, duration: 12, loop: false }}
     />
   );
 }`}
                 </CodeHighlighter>
-              </section>
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">
+                    Multiple Videos Playlist
+                  </h3>
+                  <CodeHighlighter>
+                    {`import { VideoPlayer } from 'react-video-audio-player';
 
-              <section>
-                <h2 className="text-3xl font-bold mb-4">Keyboard Shortcuts</h2>
+function App() {
+  const playlist = {
+    items: [
+      { src: 'video1.mp4', duration: 45},
+      { src: 'video2.mp4', duration: 120 },
+      { src: 'video3.mp4', duration: 90 },
+    ],
+    loop: false,
+  };
+
+  return <VideoPlayer playlist={playlist} controls />;
+}`}
+                  </CodeHighlighter>
+                </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/60 bg-card/80 shadow-sm backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-3xl">Keyboard Shortcuts</CardTitle>
+                </CardHeader>
+                <CardContent>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>
                     <code>Space</code> - Play/Pause
@@ -134,17 +279,24 @@ function App() {
                     <code>S</code> - Change Speed
                   </li>
                 </ul>
-              </section>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
           <TabsContent value="audio">
             <div className="space-y-8">
-              <section>
-                <h2 className="text-3xl font-bold mb-4">Audio Player Props</h2>
+              <Card className="border-border/60 bg-card/80 shadow-sm backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-3xl">Audio Player Props</CardTitle>
+                  <CardDescription className="text-base">
+                    The audio player leans on WaveSurfer.js for waveform-rich
+                    playback and falls back cleanly when needed.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
                 <CodeHighlighter>
-                  {`import { AudioPlayerProps, AudioControlOptionsToRemove } from "react-video-audio-player";
-import WaveSurfer from "wavesurfer.js";`}
+                  {`import { AudioPlayerProps, AudioControlOptionsToRemove } from "react-video-audio-player"; `}
                 </CodeHighlighter>
                 <div className="overflow-x-auto">
                   <Table>
@@ -176,7 +328,7 @@ import WaveSurfer from "wavesurfer.js";`}
                           <TableCell className="p-4">
                             <div
                               dangerouslySetInnerHTML={{
-                                __html: prop.description,
+                                __html: prop.description || "",
                               }}
                             />
                           </TableCell>
@@ -185,10 +337,14 @@ import WaveSurfer from "wavesurfer.js";`}
                     </TableBody>
                   </Table>
                 </div>
-              </section>
+                </CardContent>
+              </Card>
 
-              <section>
-                <h2 className="text-3xl font-bold mb-4">Example Usage</h2>
+              <Card className="border-border/60 bg-card/80 shadow-sm backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-3xl">Example Usage</CardTitle>
+                </CardHeader>
+                <CardContent>
                 <CodeHighlighter>
                   {`import { AudioPlayer } from 'react-video-audio-player';
 
@@ -206,10 +362,14 @@ function App() {
   );
 }`}
                 </CodeHighlighter>
-              </section>
+                </CardContent>
+              </Card>
 
-              <section>
-                <h2 className="text-3xl font-bold mb-4">Keyboard Shortcuts</h2>
+              <Card className="border-border/60 bg-card/80 shadow-sm backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-3xl">Keyboard Shortcuts</CardTitle>
+                </CardHeader>
+                <CardContent>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>
                     <code>Space</code> - Play/Pause
@@ -233,12 +393,14 @@ function App() {
                     <code>S</code> - Change Speed
                   </li>
                 </ul>
-              </section>
+                </CardContent>
+              </Card>
 
-              <section>
-                <h2 className="text-3xl font-bold mb-4">
-                  WaveSurfer Integration
-                </h2>
+              <Card className="border-border/60 bg-card/80 shadow-sm backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-3xl">WaveSurfer Integration</CardTitle>
+                </CardHeader>
+                <CardContent>
                 <p>
                   The audio player uses WaveSurfer.js for waveform
                   visualisation. For more information about WaveSurfer and its
@@ -247,21 +409,28 @@ function App() {
                     href="https://wavesurfer.xyz/docs/classes/wavesurfer.default"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:underline"
+                    className="text-primary underline"
                   >
                     WaveSurfer Documentation
                   </Link>
                   .
                 </p>
-              </section>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
           <TabsContent value="examples">
             <div className="space-y-8">
-              <section>
-                <div>
-                  <h2 className="text-3xl font-bold mb-4">Utility Functions</h2>
+              <Card className="border-border/60 bg-card/80 shadow-sm backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-3xl">Utility Functions</CardTitle>
+                  <CardDescription className="text-base">
+                    The package exports helpers alongside the player components
+                    so consumers can reuse the same formatting logic.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
                   <CodeHighlighter>
                     {`import { formatTime } from 'react-video-audio-player';
 
@@ -269,10 +438,8 @@ function App() {
 const time = formatTime(125); // "2:05"
 const longTime = formatTime(3661); // "1:01:01"`}
                   </CodeHighlighter>
-                </div>
-
-                <div>
-                  <h3 className="text-2xl font-bold my-4">CDN Usage</h3>
+                  <div>
+                    <h3 className="text-2xl font-bold my-4">CDN Usage</h3>
                   <CodeHighlighter language="html">
                     {`
 <div id="video-player-container"></div>
@@ -316,11 +483,11 @@ const longTime = formatTime(3661); // "1:01:01"`}
   audioPlayerContainer.appendChild(audioPlayer);
 </script>`}
                   </CodeHighlighter>
-                </div>
+                  </div>
 
-                <h2 className="text-3xl font-bold my-4">Callback Examples</h2>
+                  <h2 className="text-3xl font-bold my-4">Callback Examples</h2>
 
-                <div className="space-y-6">
+                  <div className="space-y-6">
                   <div>
                     <h3 className="text-2xl font-bold mb-4">
                       Progress Tracking
@@ -565,7 +732,8 @@ function App() {
                     </CodeHighlighter>
                   </div>
                 </div>
-              </section>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
         </Tabs>

@@ -10,6 +10,8 @@ import React, {
 import WaveSurfer, { WaveSurferOptions } from "wavesurfer.js";
 import { formatTime, playbackRateOptions } from "./lib/utils";
 import { updateRangeBackground } from "./lib/utils";
+import { useInView } from "./lib/useInView";
+import { loadAudioPeaks } from "./lib/peaks";
 import Select from "./components/Select";
 import "./video-audio-player.css";
 
@@ -38,6 +40,7 @@ export interface AudioPlayerProps {
   showDownloadButton?: boolean;
   defaultPlaybackRate?: number;
   defaultVolume?: number;
+  maxAutoPlayDuration?: number;
   onProgress?: (currentTime: number, duration: number) => void;
   onSeeked?: (time: number) => void;
   onDownloadStart?: () => void;
@@ -72,6 +75,7 @@ const AudioPlayer = ({
   disableShortcuts = false,
   defaultPlaybackRate,
   defaultVolume = 1,
+  maxAutoPlayDuration,
   onProgress,
   onSeeked,
   onDownloadStart,
@@ -89,6 +93,7 @@ const AudioPlayer = ({
   getAudioElement,
 }: AudioPlayerProps) => {
   const waveformRef = useRef<HTMLDivElement>(null);
+  const audioElRef = useRef<HTMLAudioElement | null>(null);
   const mountedRef = useRef(true);
   const lastVolumeRef = useRef<number>(defaultVolume);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -103,39 +108,54 @@ const AudioPlayer = ({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const audioContainerRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(audioContainerRef);
   const volumeInputRef = useRef<HTMLInputElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [reload, setReload] = useState(false);
   const [reverseCurrentTime, setReverseCurrentTime] = useState(false);
+  const [useWaveform, setUseWaveform] = useState(true);
 
   useEffect(() => {
-    if (waveSurfer.current) {
-      setIsMuted(muted);
-      const initialVolume = muted ? 0 : defaultVolume;
-      setVolume(initialVolume);
-      lastVolumeRef.current = initialVolume || 1;
+    const volumeInput = volumeInputRef.current;
+    updateRangeBackground(volumeInput);
+    const initialVolume = muted ? 0 : defaultVolume;
+    setVolume(initialVolume);
+    lastVolumeRef.current = initialVolume || 1;
+    setIsMuted(muted);
+    // if using fallback audio element, apply initial volume
+    if (!useWaveform && audioElRef.current) {
+      try {
+        audioElRef.current.volume = initialVolume;
+        audioElRef.current.muted = muted;
+      } catch {
+        /* ignore */
+      }
     }
-  }, [muted, defaultVolume]);
+  }, [muted, defaultVolume, useWaveform]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       if (!mountedRef.current) return;
-      if (waveSurfer.current && defaultPlaybackRate && duration) {
+      if (defaultPlaybackRate && duration) {
         const newPlaybackRate = Math.min(
           Math.max(Number(defaultPlaybackRate) || 1, 0.0625),
-          16
+          16,
         );
         setPlaybackRate(newPlaybackRate);
         try {
-          waveSurfer.current.setPlaybackRate(newPlaybackRate);
+          if (useWaveform && waveSurfer.current) {
+            waveSurfer.current.setPlaybackRate(newPlaybackRate);
+          } else if (!useWaveform && audioElRef.current) {
+            audioElRef.current.playbackRate = newPlaybackRate;
+          }
         } catch (err) {
-          console.warn("Failed to set WaveSurfer playback rate", err);
+          console.warn("Failed to set playback rate", err);
         }
         if (onPlaybackRateChange) onPlaybackRateChange(newPlaybackRate);
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [defaultPlaybackRate, duration, onPlaybackRateChange]);
+  }, [defaultPlaybackRate, duration, onPlaybackRateChange, useWaveform]);
 
   useEffect(() => {
     return () => {
@@ -144,22 +164,33 @@ const AudioPlayer = ({
   }, []);
 
   useEffect(() => {
-    if (waveSurfer.current) {
-      const volumeInput = volumeInputRef.current;
-      updateRangeBackground(volumeInput);
-      const newVolume = Math.min(Math.max(volume || 0, 0), 1);
-      waveSurfer.current.setVolume(newVolume);
-      if (onVolumeChange) onVolumeChange(newVolume);
-      if (newVolume === 0) {
-        setIsMuted(true);
-        if (onMuteChange) onMuteChange(true);
-      } else {
-        setIsMuted(false);
-        if (onMuteChange) onMuteChange(false);
+    const volumeInput = volumeInputRef.current;
+    updateRangeBackground(volumeInput);
+    const newVolume = Math.min(Math.max(volume || 0, 0), 1);
+    if (useWaveform && waveSurfer.current) {
+      try {
+        waveSurfer.current.setVolume(newVolume);
+      } catch {
+        /* ignore */
       }
-      if (newVolume > 0) lastVolumeRef.current = newVolume;
+    } else if (!useWaveform && audioElRef.current) {
+      try {
+        audioElRef.current.volume = newVolume;
+        audioElRef.current.muted = newVolume === 0;
+      } catch {
+        /* ignore */
+      }
     }
-  }, [volume, onVolumeChange, onMuteChange]);
+    if (onVolumeChange) onVolumeChange(newVolume);
+    if (newVolume === 0) {
+      setIsMuted(true);
+      if (onMuteChange) onMuteChange(true);
+    } else {
+      setIsMuted(false);
+      if (onMuteChange) onMuteChange(false);
+    }
+    if (newVolume > 0) lastVolumeRef.current = newVolume;
+  }, [volume, onVolumeChange, onMuteChange, useWaveform]);
 
   useEffect(() => {
     const audioContainer = audioContainerRef.current;
@@ -189,7 +220,7 @@ const AudioPlayer = ({
       desiredPlayRef.current = next;
       return next;
     });
-    if (waveSurfer.current) {
+    if (useWaveform && waveSurfer.current) {
       try {
         const wsAny = waveSurfer.current as unknown as {
           isPlaying?: () => boolean;
@@ -203,13 +234,20 @@ const AudioPlayer = ({
         }
       } catch {
         try {
-          waveSurfer.current.playPause();
+          waveSurfer.current?.playPause();
         } catch {
           // ignore
         }
       }
+    } else if (audioElRef.current) {
+      try {
+        if (audioElRef.current.paused) audioElRef.current.play();
+        else audioElRef.current.pause();
+      } catch {
+        // ignore
+      }
     }
-  }, []);
+  }, [useWaveform]);
 
   const toggleMute = useCallback(() => {
     const currentlyMuted = isMuted;
@@ -228,8 +266,8 @@ const AudioPlayer = ({
       if (onMuteChange) onMuteChange(false);
     }
 
-    // apply to WaveSurfer if ready
-    if (waveSurfer.current) {
+    // apply to WaveSurfer or audio element if ready
+    if (useWaveform && waveSurfer.current) {
       try {
         waveSurfer.current.setMuted(nextMuted);
         if (!nextMuted && waveSurfer.current.setVolume) {
@@ -242,8 +280,15 @@ const AudioPlayer = ({
       } catch (err) {
         console.warn("WaveSurfer setMuted failed", err);
       }
+    } else if (!useWaveform && audioElRef.current) {
+      try {
+        audioElRef.current.muted = nextMuted;
+        if (!nextMuted) audioElRef.current.volume = lastVolumeRef.current || 1;
+      } catch {
+        // ignore
+      }
     }
-  }, [isMuted, onMuteChange, volume]);
+  }, [isMuted, onMuteChange, volume, useWaveform]);
 
   useEffect(() => {
     if (disableShortcuts) return;
@@ -259,78 +304,104 @@ const AudioPlayer = ({
         return;
       }
 
-      if (waveSurfer.current) {
-        switch (e.key) {
-          case "ArrowRight":
-            e.preventDefault();
+      const applySkip = (seconds: number) => {
+        if (useWaveform && waveSurfer.current) {
+          try {
             waveSurfer.current.setTime(
-              waveSurfer.current.getCurrentTime() + 10
+              waveSurfer.current.getCurrentTime() + seconds,
             );
-            break;
-          case "ArrowLeft":
-            e.preventDefault();
-            waveSurfer.current.setTime(
-              waveSurfer.current.getCurrentTime() - 10
-            );
-            break;
-          case "ArrowUp":
-            e.preventDefault();
-            waveSurfer.current.setVolume(Math.min(volume + 0.1, 1));
-            setVolume((prevVolume) => {
-              if (prevVolume === 0) {
-                setIsMuted(false);
-              }
-              return Math.min(prevVolume + 0.1, 1);
-            });
-            break;
-          case "ArrowDown":
-            e.preventDefault();
-            waveSurfer.current.setVolume(Math.max(volume - 0.1, 0));
-            setVolume((prevVolume) => {
-              const newVolume = Math.max(prevVolume - 0.1, 0);
-              if (newVolume === 0) {
-                setIsMuted(true);
-              }
-              return newVolume;
-            });
-
-            break;
-          case " ":
-            e.preventDefault();
-            waveSurfer.current.playPause();
-            break;
-          case "m":
-          case "M":
-            e.preventDefault();
-            toggleMute();
-            break;
-          case "s":
-          case "S": {
-            e.preventDefault();
-            const speedRate =
-              playbackRate === 1
-                ? 1.25
-                : playbackRate === 1.25
-                ? 1.5
-                : playbackRate === 1.5
-                ? 1.75
-                : playbackRate === 1.75
-                ? 2
-                : playbackRate === 2
-                ? 0.25
-                : playbackRate === 0.25
-                ? 0.5
-                : playbackRate === 0.5
-                ? 0.75
-                : 1;
-            setPlaybackRate(speedRate);
-            waveSurfer.current.setPlaybackRate(speedRate);
-            if (onPlaybackRateChange) onPlaybackRateChange(speedRate);
-            break;
+          } catch {
+            /* ignore */
           }
-          default:
-            break;
+        } else if (audioElRef.current) {
+          try {
+            audioElRef.current.currentTime = Math.max(
+              0,
+              (audioElRef.current.currentTime || 0) + seconds,
+            );
+          } catch {
+            /* ignore */
+          }
         }
+      };
+
+      switch (e.key) {
+        case "ArrowRight":
+          e.preventDefault();
+          applySkip(10);
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          applySkip(-10);
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setVolume((prevVolume) => {
+            const nv = Math.min(prevVolume + 0.1, 1);
+            if (nv === 0) setIsMuted(false);
+            return nv;
+          });
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          setVolume((prevVolume) => {
+            const nv = Math.max(prevVolume - 0.1, 0);
+            if (nv === 0) setIsMuted(true);
+            return nv;
+          });
+          break;
+        case " ":
+          e.preventDefault();
+          if (useWaveform && waveSurfer.current) waveSurfer.current.playPause();
+          else if (audioElRef.current) {
+            if (audioElRef.current.paused) audioElRef.current.play();
+            else audioElRef.current.pause();
+          }
+          break;
+        case "m":
+        case "M":
+          e.preventDefault();
+          toggleMute();
+          break;
+        case "s":
+        case "S": {
+          e.preventDefault();
+          const current = playbackRate || 1;
+          const speedRate =
+            current === 1
+              ? 1.25
+              : current === 1.25
+                ? 1.5
+                : current === 1.5
+                  ? 1.75
+                  : current === 1.75
+                    ? 2
+                    : current === 2
+                      ? 0.25
+                      : current === 0.25
+                        ? 0.5
+                        : current === 0.5
+                          ? 0.75
+                          : 1;
+          setPlaybackRate(speedRate);
+          if (useWaveform && waveSurfer.current) {
+            try {
+              waveSurfer.current.setPlaybackRate(speedRate);
+            } catch {
+              /* ignore */
+            }
+          } else if (audioElRef.current) {
+            try {
+              audioElRef.current.playbackRate = speedRate;
+            } catch {
+              /* ignore */
+            }
+          }
+          if (onPlaybackRateChange) onPlaybackRateChange(speedRate);
+          break;
+        }
+        default:
+          break;
       }
     };
 
@@ -345,10 +416,12 @@ const AudioPlayer = ({
     disableShortcuts,
     toggleMute,
     onPlaybackRateChange,
+    useWaveform,
   ]);
 
   const reloadAudio = () => {
     setAudioError(false);
+    setUseWaveform(true);
     setTimeout(() => {
       setReload(!reload);
       updateRangeBackground(volumeInputRef.current, volume, 1);
@@ -426,6 +499,8 @@ const AudioPlayer = ({
     };
 
     let cancelled = false;
+    let fallbackTimer: number | null = null;
+    let readyHandlerRef: (() => void) | null = null;
 
     if (waveSurfer.current) {
       try {
@@ -436,26 +511,50 @@ const AudioPlayer = ({
       waveSurfer.current = null;
     }
 
+    if (!isInView) {
+      return;
+    }
+
+    if (!useWaveform) {
+      // waveform disabled: skip creating WaveSurfer (fallback audio element will be used)
+      return;
+    }
+
     if (waveformRef.current) {
       (async () => {
         const container = waveformRef.current!;
         let durationSeconds = 0;
+        let shouldFallback = false;
         try {
           const probe = document.createElement("audio");
           probe.crossOrigin = "anonymous";
           probe.preload = "metadata";
           probe.src = src;
+          const probeTimeoutMs = 3500;
           await new Promise<void>((resolve) => {
+            let settled = false;
+            const settle = () => {
+              if (settled) return;
+              settled = true;
+              cleanup();
+              resolve();
+            };
             const onLoaded = () => {
               durationSeconds = probe.duration || 0;
-              cleanup();
-              resolve();
+              settle();
             };
             const onError = () => {
-              cleanup();
-              resolve();
+              shouldFallback = true;
+              setUseWaveform(false);
+              settle();
             };
+            const timeoutId = window.setTimeout(() => {
+              shouldFallback = true;
+              setUseWaveform(false);
+              settle();
+            }, probeTimeoutMs);
             function cleanup() {
+              window.clearTimeout(timeoutId);
               probe.removeEventListener("loadedmetadata", onLoaded);
               probe.removeEventListener("error", onError);
               try {
@@ -470,9 +569,18 @@ const AudioPlayer = ({
         } catch (err) {
           console.warn("Audio probe failed", err);
         }
-        if (cancelled) return;
-        const LONG_AUDIO_SECONDS = 30 * 60;
+        if (cancelled || shouldFallback) return;
+        const LONG_AUDIO_SECONDS = 30 * 60; // 30 minutes
         const isLong = durationSeconds && durationSeconds > LONG_AUDIO_SECONDS;
+        let peaks: number[] | null = null;
+
+        if (isLong) {
+          const peakCount = Math.max(
+            Math.min(Math.round((container.clientWidth || 0) * 2), 4096),
+            1024,
+          );
+          peaks = await loadAudioPeaks(src, peakCount);
+        }
 
         const wsOptions: WaveSurferOptions = {
           container: container,
@@ -487,6 +595,10 @@ const AudioPlayer = ({
           barWidth: isLong ? 3 : 2,
           barGap: isLong ? 2 : 1,
         };
+        if (peaks?.length) {
+          wsOptions.peaks = [Float32Array.from(peaks)];
+          wsOptions.duration = durationSeconds;
+        }
         if (isLong) {
           wsOptions.backend = "MediaElement";
         }
@@ -495,7 +607,18 @@ const AudioPlayer = ({
         setCurrentTime(0);
 
         try {
-          waveSurfer.current.on("ready", handleReady);
+          // install a ready wrapper so we can fallback if "ready" never fires
+          let readyFired = false;
+          readyHandlerRef = () => {
+            readyFired = true;
+            if (fallbackTimer) {
+              clearTimeout(fallbackTimer);
+              fallbackTimer = null;
+            }
+            handleReady();
+          };
+
+          waveSurfer.current.on("ready", readyHandlerRef);
           waveSurfer.current.on("finish", handleEnded);
           waveSurfer.current.on("play", handlePlay);
           waveSurfer.current.on("pause", handlePause);
@@ -503,17 +626,38 @@ const AudioPlayer = ({
           waveSurfer.current.on("audioprocess", handleProgress);
           waveSurfer.current.on("timeupdate", handleProgress);
           const media =
-            waveSurfer.current.getMediaElement &&
-            waveSurfer.current.getMediaElement();
+            useWaveform && waveSurfer.current.getMediaElement
+              ? waveSurfer.current.getMediaElement()
+              : audioElRef.current;
           if (media) {
             media.loop = loop;
             media.onvolumechange = handleVolumeChange;
-            if (autoPlay) media.autoplay = true;
+            const shouldAutoplay =
+              autoPlay &&
+              (!maxAutoPlayDuration || durationSeconds <= maxAutoPlayDuration);
+            if (shouldAutoplay) media.autoplay = true;
           }
           waveSurfer.current.on("seeking", handleSeeked);
           if (!controls) {
             waveSurfer.current.on("click", handleClick);
           }
+
+          // if ready doesn't fire within reasonable time, fallback to plain audio element
+          fallbackTimer = window.setTimeout(() => {
+            try {
+              if (!readyFired) {
+                try {
+                  waveSurfer.current?.destroy();
+                } catch {
+                  /* ignore */
+                }
+                waveSurfer.current = null;
+                setUseWaveform(false);
+              }
+            } catch {
+              /* ignore */
+            }
+          }, 8000);
         } catch (err) {
           console.warn("Error binding WaveSurfer events", err);
         }
@@ -533,7 +677,8 @@ const AudioPlayer = ({
       const ws = waveSurfer.current;
       if (ws) {
         try {
-          ws.un("ready", handleReady);
+          if (readyHandlerRef) ws.un("ready", readyHandlerRef);
+          else ws.un("ready", handleReady);
           ws.un("finish", handleEnded);
           ws.un("play", handlePlay);
           ws.un("pause", handlePause);
@@ -549,7 +694,10 @@ const AudioPlayer = ({
         }
 
         try {
-          const media = ws.getMediaElement && ws.getMediaElement();
+          const media =
+            useWaveform && ws.getMediaElement
+              ? ws.getMediaElement()
+              : audioElRef.current;
           if (media) {
             media.onvolumechange = null;
             media.loop = false;
@@ -565,6 +713,7 @@ const AudioPlayer = ({
           console.warn("Error destroying WaveSurfer instance", err);
         }
         waveSurfer.current = null;
+        audioElRef.current = null;
       }
     };
   }, [
@@ -572,6 +721,7 @@ const AudioPlayer = ({
     accentColor,
     loop,
     autoPlay,
+    maxAutoPlayDuration,
     onReady,
     onDuration,
     onEnded,
@@ -585,27 +735,147 @@ const AudioPlayer = ({
     seekTo,
     reload,
     onVolumeChange,
+    useWaveform,
+    isInView,
   ]);
 
   const handleSpeedChange = (speed: number) => {
     setPlaybackRate(speed);
-    if (waveSurfer.current) {
-      waveSurfer.current.setPlaybackRate(speed);
-      if (onPlaybackRateChange) onPlaybackRateChange(speed);
+    if (useWaveform && waveSurfer.current) {
+      try {
+        waveSurfer.current.setPlaybackRate(speed);
+      } catch {
+        /* ignore */
+      }
+    } else if (audioElRef.current) {
+      try {
+        audioElRef.current.playbackRate = speed;
+      } catch {
+        /* ignore */
+      }
     }
+    if (onPlaybackRateChange) onPlaybackRateChange(speed);
   };
 
   useEffect(() => {
     if (getWaveSurferRef && waveSurfer.current) {
       getWaveSurferRef(waveSurfer.current);
     }
-  }, [getWaveSurferRef, waveSurfer]);
+  }, [getWaveSurferRef, waveSurfer, useWaveform]);
 
   useEffect(() => {
-    if (getAudioElement && waveSurfer.current) {
-      getAudioElement(waveSurfer.current.getMediaElement());
+    if (getAudioElement) {
+      try {
+        if (useWaveform && waveSurfer.current) {
+          getAudioElement(waveSurfer.current.getMediaElement());
+        } else {
+          getAudioElement(audioElRef.current);
+        }
+      } catch {
+        getAudioElement(audioElRef.current);
+      }
     }
-  }, [getAudioElement, waveSurfer]);
+  }, [getAudioElement, waveSurfer, useWaveform]);
+
+  useEffect(() => {
+    if (!useWaveform && audioElRef.current) {
+      const audio = audioElRef.current;
+
+      const audio_onLoadedMetadata = () => {
+        const d = audio.duration || 0;
+        setDuration(d);
+        const shouldAutoplay =
+          autoPlay && (!maxAutoPlayDuration || d <= maxAutoPlayDuration);
+        if (shouldAutoplay && !audio.autoplay) {
+          audio.autoplay = true;
+          audio.play().catch(() => {
+            /* Ignore autoplay failure */
+          });
+        } else if (!shouldAutoplay) {
+          audio.autoplay = false;
+        }
+        if (onReady) onReady();
+        if (onDuration) onDuration(d);
+      };
+
+      const audio_onTimeUpdate = () => {
+        setCurrentTime(audio.currentTime || 0);
+        if (onProgress) onProgress(audio.currentTime || 0, audio.duration || 0);
+        if (audio.currentTime === audio.duration) {
+          setIsPlaying(false);
+          if (onEnded) onEnded();
+        }
+      };
+
+      const audio_onPlay = () => {
+        setIsPlaying(true);
+        if (onPlay) onPlay();
+      };
+
+      const audio_onPause = () => {
+        setIsPlaying(false);
+        if (onPause) onPause();
+      };
+
+      const audio_onError = () => {
+        setAudioError(true);
+        if (onError) onError();
+      };
+
+      const audio_onVolumeChange = () => {
+        const newVol = audio.volume || 0;
+        setVolume(newVol);
+        if (onVolumeChange) onVolumeChange(newVol);
+        const mutedState = audio.muted || newVol === 0;
+        setIsMuted(mutedState);
+        if (onMuteChange) onMuteChange(mutedState);
+      };
+
+      const audio_onSeeking = () => {
+        if (onSeeked) onSeeked(audio.currentTime || 0);
+      };
+
+      audio.addEventListener("loadedmetadata", audio_onLoadedMetadata);
+      audio.addEventListener("timeupdate", audio_onTimeUpdate);
+      audio.addEventListener("play", audio_onPlay);
+      audio.addEventListener("pause", audio_onPause);
+      audio.addEventListener("ended", audio_onTimeUpdate);
+      audio.addEventListener("error", audio_onError);
+      audio.addEventListener("volumechange", audio_onVolumeChange);
+      audio.addEventListener("seeking", audio_onSeeking);
+
+      return () => {
+        try {
+          audio.removeEventListener("loadedmetadata", audio_onLoadedMetadata);
+          audio.removeEventListener("timeupdate", audio_onTimeUpdate);
+          audio.removeEventListener("play", audio_onPlay);
+          audio.removeEventListener("pause", audio_onPause);
+          audio.removeEventListener("ended", audio_onTimeUpdate);
+          audio.removeEventListener("error", audio_onError);
+          audio.removeEventListener("volumechange", audio_onVolumeChange);
+          audio.removeEventListener("seeking", audio_onSeeking);
+        } catch {
+          /* ignore */
+        }
+      };
+    }
+    return;
+  }, [
+    useWaveform,
+    src,
+    autoPlay,
+    maxAutoPlayDuration,
+    onProgress,
+    onSeeked,
+    onPlay,
+    onPause,
+    onEnded,
+    onError,
+    onReady,
+    onDuration,
+    onVolumeChange,
+    onMuteChange,
+  ]);
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
@@ -619,14 +889,22 @@ const AudioPlayer = ({
       setIsDownloading(true);
       const link = document.createElement("a");
       const response = await fetch(src);
+      if (!response.ok) throw new Error("Download failed");
       const blob = await response.blob();
-      link.href = URL.createObjectURL(blob);
-      link.download =
-        Math.random().toString(36).substring(2, 9) +
-          "." +
-          src.split(".").pop() || ".mp3";
+      const objectUrl = URL.createObjectURL(blob);
+      link.href = objectUrl;
+      const maybeExt = src ? src.split(".").pop() : null;
+      const ext = maybeExt || "mp3";
+      link.download = `${Math.random().toString(36).substring(2, 9)}.${ext}`;
       link.click();
       link.remove();
+      setTimeout(() => {
+        try {
+          URL.revokeObjectURL(objectUrl);
+        } catch {
+          /* ignore */
+        }
+      }, 1000);
       setIsDownloading(false);
       if (onDownloadEnd) onDownloadEnd(true);
     } catch {
@@ -759,12 +1037,31 @@ const AudioPlayer = ({
             </>
           )}
 
-          <div
-            ref={waveformRef}
-            className="waveform"
-            style={{ width: "100%", height: "100%", cursor: "pointer" }}
-            aria-label="Audio waveform"
-          />
+          {useWaveform ? (
+            <div
+              ref={waveformRef}
+              className="waveform"
+              style={{ width: "100%", height: "100%", cursor: "pointer" }}
+              aria-label="Audio waveform"
+            />
+          ) : (
+            <div
+              ref={waveformRef}
+              className="waveform"
+              style={{ width: "100%", height: "100%", cursor: "pointer" }}
+              aria-label="Audio waveform"
+            >
+              <audio
+                ref={audioElRef}
+                src={src}
+                preload={isInView ? "metadata" : "none"}
+                autoPlay={autoPlay}
+                muted={muted}
+                loop={loop}
+                style={{ width: "100%", display: "block" }}
+              />
+            </div>
+          )}
 
           {controls && (
             <>
@@ -798,7 +1095,7 @@ const AudioPlayer = ({
                     onClick={(value) => {
                       const newPlaybackRate = Math.min(
                         Math.max(Number(value) || 1, 0.0625),
-                        16
+                        16,
                       );
                       handleSpeedChange(newPlaybackRate);
                     }}

@@ -10,6 +10,36 @@ class ResizeObserver {
 
 globalThis.ResizeObserver = ResizeObserver;
 
+class IntersectionObserver {
+  private callback: IntersectionObserverCallback;
+
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback;
+  }
+
+  observe(target: Element) {
+    this.callback([
+      {
+        isIntersecting: true,
+        intersectionRatio: 1,
+        target,
+        time: Date.now(),
+        boundingClientRect: target.getBoundingClientRect(),
+        intersectionRect: target.getBoundingClientRect(),
+        rootBounds: null,
+      } as IntersectionObserverEntry,
+    ], this);
+  }
+
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return [] as IntersectionObserverEntry[];
+  }
+}
+
+globalThis.IntersectionObserver = IntersectionObserver as unknown as typeof globalThis.IntersectionObserver;
+
 // Mock HTMLMediaElement.prototype.play
 Object.defineProperty(HTMLMediaElement.prototype, 'play', {
   configurable: true,

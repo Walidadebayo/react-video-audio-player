@@ -30,18 +30,29 @@ export default function CodeHighlighter({
   };
 
   return (
-    <div className="w-full p-2 bg-muted rounded-lg flex items-center gap-1 my-2">
-      <div className="w-full overflow-x-auto rounded-lg">
+    <div className="relative my-2 w-full max-w-full overflow-hidden rounded-lg bg-muted p-2">
+      <div className="w-full min-w-0 overflow-x-auto rounded-lg pr-10">
         <SyntaxHighlighter
           key={mounted ? theme : "light"}
           showLineNumbers={showLineNumbers}
           language={language}
           style={theme === "dark" ? atomOneDark : vs}
+          customStyle={{
+            margin: 0,
+            background: "transparent",
+            minWidth: 0,
+            width: "100%",
+          }}
         >
           {children}
         </SyntaxHighlighter>
       </div>
-      <button onClick={handleCopy} className="p-2">
+      <button
+        onClick={handleCopy}
+        className="absolute right-2 top-2 rounded-md p-2 transition-colors hover:bg-background/70"
+        aria-label="Copy code"
+        type="button"
+      >
         {isCopied ? (
           <ClipboardCheck className="h-6 w-6 text-green-500" />
         ) : (

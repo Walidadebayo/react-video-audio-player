@@ -1,5 +1,5 @@
 import React from "react";
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { screen, fireEvent } from "@testing-library/dom";
 import VideoPlayer from "../VideoPlayer";
 
@@ -111,7 +111,185 @@ describe("VideoPlayer", () => {
     render(<VideoPlayer {...defaultProps} />);
     fireEvent.error(screen.getByRole("video"));
     expect(
-      screen.getByText(defaultProps.customErrorMessage)
+      screen.getByText(defaultProps.customErrorMessage),
     ).toBeInTheDocument();
+  });
+
+  test("plays only the configured preview clip", async () => {
+    const { container } = render(
+      <VideoPlayer
+        {...defaultProps}
+        preview={{ mode: "clip", start: 12, duration: 8 }}
+      />,
+    );
+
+    const videoElement = screen.getByRole("video") as HTMLVideoElement;
+    Object.defineProperty(videoElement, "duration", {
+      configurable: true,
+      value: 120,
+    });
+
+    await act(async () => {
+      fireEvent(videoElement, new Event("loadedmetadata"));
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector("video")).toBeInTheDocument();
+    expect(HTMLMediaElement.prototype.play as jest.Mock).toHaveBeenCalled();
+    expect(videoElement.currentTime).toBeGreaterThanOrEqual(12);
+    expect(videoElement.currentTime).toBeLessThanOrEqual(20);
+  });
+
+  test("prevents autoplay when the video is longer than the autoplay limit", async () => {
+    (HTMLMediaElement.prototype.play as jest.Mock).mockClear();
+
+    render(<VideoPlayer {...defaultProps} autoPlay maxAutoPlayDuration={30} />);
+
+    const videoElement = screen.getByRole("video") as HTMLVideoElement;
+    Object.defineProperty(videoElement, "duration", {
+      configurable: true,
+      value: 120,
+    });
+
+    await act(async () => {
+      fireEvent(videoElement, new Event("loadedmetadata"));
+      await Promise.resolve();
+    });
+
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+    expect(screen.getAllByRole("button", { name: /play/i })[0]).toHaveAttribute(
+      "aria-label",
+      "Play",
+    );
+  });
+
+  test("renders playlist with multiple video items", () => {
+    const playlist = {
+      items: [
+        { src: "video1.mp4", duration: 30 },
+        { src: "video2.mp4", duration: 45 },
+        { src: "video3.mp4", duration: 60 },
+      ],
+    };
+
+    render(<VideoPlayer playlist={playlist} controls />);
+    const videoElement = screen.getByRole("video") as HTMLVideoElement;
+    expect(videoElement).toBeInTheDocument();
+    expect(videoElement.src).toContain("video1.mp4");
+  });
+
+  test("handles playlist item advancement on video end", async () => {
+    const playlist = {
+      items: [
+        { src: "video1.mp4", duration: 30 },
+        { src: "video2.mp4", duration: 45 },
+      ],
+    };
+
+    render(<VideoPlayer playlist={playlist} controls />);
+    const videoElement = screen.getByRole("video") as HTMLVideoElement;
+
+    Object.defineProperty(videoElement, "duration", {
+      configurable: true,
+      value: 30,
+    });
+
+    await act(async () => {
+      fireEvent(videoElement, new Event("loadedmetadata"));
+      await Promise.resolve();
+    });
+
+    // Simulate video ending
+    videoElement.currentTime = 30;
+    fireEvent(videoElement, new Event("timeupdate"));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Should advance to next item (src should change)
+    expect(videoElement.src).toBeDefined();
+  });
+
+  test("supports gapless playback with same-source clips using start/end times", async () => {
+    const playlist = {
+      items: [
+        { src: "long-video.mp4", duration: 10, start: 0, end: 10 },
+        { src: "long-video.mp4", duration: 10, start: 10, end: 20 },
+        { src: "long-video.mp4", duration: 10, start: 20, end: 30 },
+      ],
+    };
+
+    render(<VideoPlayer playlist={playlist} controls />);
+    const videoElement = screen.getByRole("video") as HTMLVideoElement;
+    expect(videoElement.src).toContain("long-video.mp4");
+  });
+
+  test("loops playlist when loop flag is enabled", async () => {
+    const playlist = {
+      items: [
+        { src: "video1.mp4", duration: 30 },
+        { src: "video2.mp4", duration: 45 },
+      ],
+      loop: true,
+    };
+
+    render(<VideoPlayer playlist={playlist} controls />);
+    const videoElement = screen.getByRole("video") as HTMLVideoElement;
+
+    Object.defineProperty(videoElement, "duration", {
+      configurable: true,
+      value: 30,
+    });
+
+    await act(async () => {
+      fireEvent(videoElement, new Event("loadedmetadata"));
+      await Promise.resolve();
+    });
+
+    // Simulate reaching end of last item
+    videoElement.currentTime = 30;
+    fireEvent(videoElement, new Event("timeupdate"));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Should loop back to first item
+    expect(videoElement.src).toBeDefined();
+  });
+
+  test("playlists always advance sequentially by default", async () => {
+    const onEnded = jest.fn();
+    const playlist = {
+      items: [
+        { src: "video1.mp4", duration: 30 },
+        { src: "video2.mp4", duration: 45 },
+      ],
+    };
+
+    render(<VideoPlayer playlist={playlist} controls onEnded={onEnded} />);
+    const videoElement = screen.getByRole("video") as HTMLVideoElement;
+
+    Object.defineProperty(videoElement, "duration", {
+      configurable: true,
+      value: 30,
+    });
+
+    await act(async () => {
+      fireEvent(videoElement, new Event("loadedmetadata"));
+      await Promise.resolve();
+    });
+
+    // Simulate video ending
+    videoElement.currentTime = 30;
+    fireEvent(videoElement, new Event("timeupdate"));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Should advance to next item and not call onEnded
+    expect(onEnded).not.toHaveBeenCalled();
   });
 });

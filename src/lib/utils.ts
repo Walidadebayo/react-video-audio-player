@@ -1,5 +1,5 @@
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -28,13 +28,15 @@ export const videoProps = [
     prop: "src",
     type: "string",
     default: '""',
-    description: "The URL of the video to embed. This is optional; you may instead use the <b>sources</b> property to specify one or more <b>source</b> elements for the video.",
+    description:
+      "The URL of the video to embed. This is optional; you may instead use the <b>sources</b> property to specify one or more <b>source</b> elements for the video.",
   },
   {
     prop: "sources",
     type: "Array<{ src: string; type: string }>",
     default: "[]",
-    description: "An array of objects containing the URL and type of the video to embed. This is optional; you may instead use the <b>src</b> property to specify the URL of the video.",
+    description:
+      "An array of objects containing the URL and type of the video to embed. This is optional; you may instead use the <b>src</b> property to specify the URL of the video.",
   },
   {
     prop: "accentColor",
@@ -46,19 +48,22 @@ export const videoProps = [
     prop: "tracks",
     type: "Array<{ src: string; kind: string; label: string; srclang: string; default?: boolean }>",
     default: "[]",
-    description: "An array of objects containing the URL, kind, label, and srclang of the tracks to embed.",
+    description:
+      "An array of objects containing the URL, kind, label, and srclang of the tracks to embed.",
   },
   {
     prop: "poster",
     type: "string",
     default: '""',
-    description: "A URL for an image to be shown while the video is downloading. If this attribute isn't specified, nothing is displayed until the first frame is available, then the first frame is shown as the poster frame.",
+    description:
+      "A URL for an image to be shown while the video is downloading. If this attribute isn't specified, nothing is displayed until the first frame is available, then the first frame is shown as the poster frame.",
   },
   {
     prop: "generatePosterAt",
     type: "number",
     default: "undefined",
-    description: "A number representing the time in seconds to generate a poster for the video. If not provided, a poster will be generated at half the video duration.",
+    description:
+      "A number representing the time in seconds to generate a poster for the video. If not provided, a poster will be generated at half the video duration.",
   },
   {
     prop: "preload",
@@ -80,25 +85,36 @@ export const videoProps = [
     prop: "controls",
     type: "boolean",
     default: "true",
-    description: "If this attribute is present, the video player will offer controls to allow the user to control video playback, including volume, duration, seeking, pause/resume playback, picture in picture (if supported), playback rate, skip forward, skip backward and fullscreen toggle.",
+    description:
+      "If this attribute is present, the video player will offer controls to allow the user to control video playback, including volume, duration, seeking, pause/resume playback, picture in picture (if supported), playback rate, skip forward, skip backward and fullscreen toggle.",
   },
   {
     prop: "autoPlay",
     type: "boolean",
     default: "false",
-    description: "A Boolean attribute; if specified, the video automatically begins to play back as soon as it can without stopping to finish loading the data.",
-  },
-  {
-    prop: "muted",
-    type: "boolean",
-    default: "false",
-    description: "A Boolean attribute that indicates the default audio mute setting contained in the video. If set, the audio will be initially silenced. Its default value is false, meaning the audio will be played when the video is played.",
+    description:
+      "A Boolean attribute; if specified, the video automatically begins to play back as soon as it can without stopping to finish loading the data.",
   },
   {
     prop: "loop",
     type: "boolean",
     default: "false",
-    description: "A Boolean attribute; if specified, the video player will automatically seek back to the start upon reaching the end of the video.",
+    description:
+      "A Boolean attribute; if specified, the video player will automatically seek back to the start upon reaching the end of the video.",
+  },
+  {
+    prop: "maxAutoPlayDuration",
+    type: "number",
+    default: "undefined",
+    description:
+      "Optional guard in seconds. If set, autoplay is blocked for videos longer than this duration.",
+  },
+  {
+    prop: "muted",
+    type: "boolean",
+    default: "false",
+    description:
+      "A Boolean attribute that indicates the default audio mute setting contained in the video. If set, the audio will be initially silenced. Its default value is false, meaning the audio will be played when the video is played.",
   },
   {
     prop: "playsInline",
@@ -110,19 +126,50 @@ export const videoProps = [
     prop: "defaultPlaybackRate",
     type: "number",
     default: "undefined",
-    description: "A number indicating the default playback speed of the video when loaded. The default value is 1.0, which indicates normal speed. The value must be between 0.0625 and 16.0.",
+    description:
+      "A number indicating the default playback speed of the video when loaded. The default value is 1.0, which indicates normal speed. The value must be between 0.0625 and 16.0.",
   },
   {
     prop: "defaultVolume",
     type: "number",
     default: "1",
-    description: "A number indicating the default volume of the video when loaded. The default value is 1.0, which indicates normal volume. The value must be between 0 and 1.",
+    description:
+      "A number indicating the default volume of the video when loaded. The default value is 1.0, which indicates normal volume. The value must be between 0 and 1.",
+  },
+  {
+    prop: "preview",
+    type: "{ mode?: 'clip' | 'random'; duration?: number; start?: number; loop?: boolean }",
+    default: "undefined",
+    description: `Configures clip or random preview playback. When enabled, the player can start at a chosen second or a random segment and stop after the configured duration.
+      <br/> 
+      - <b>mode</b>: "clip" to preview a specific segment, or "random" to preview a random segment on each load.
+      <br/>
+      - <b>duration</b>: Duration of the preview in seconds.
+      <br/>
+      - <b>start</b>: Start time of the preview in seconds. Only used in "clip" mode. Ignored in "random" mode where the start time is randomized on each load.
+      <br/>
+      - <b>loop</b>: Whether to loop the preview.
+      `,
+  },
+  {
+    prop: "playlist",
+    type: `{ items: Array<{ src: string; duration: string; start?: number; end?: number }>;  loop?: boolean }`,
+    default: "undefined",
+    description: `Configure a playlist to play multiple videos in sequence. 
+                <br />
+                - <b>items</b>: Array of video items with src URL, duration, and optional start time, and end time.
+                 <br />
+                - <b>loop</b>: Loop back to first item when reaching the end (default: false).
+                <br />
+                Use start/end times for same-source clips to create gapless playback of segments from the same video file.
+                `,
   },
   {
     prop: "seekTo",
     type: "number",
     default: "0",
-    description: "A number representing the time in seconds to seek to in the video when it has loaded",
+    description:
+      "A number representing the time in seconds to seek to in the video when it has loaded",
   },
   {
     prop: "controlsToExclude",
@@ -157,13 +204,15 @@ export const videoProps = [
     prop: "width",
     type: "string | number",
     default: '"100%"',
-    description: "A string or number representing the width of the video player.",
+    description:
+      "A string or number representing the width of the video player.",
   },
   {
     prop: "height",
     type: "string | number",
     default: '"100%"',
-    description: "A string or number representing the height of the video player. minHeight: 180px",
+    description:
+      "A string or number representing the height of the video player. minHeight: 180px",
   },
   {
     prop: "className",
@@ -176,7 +225,8 @@ export const videoProps = [
     type: "CSSProperties",
     default: "{}",
     description: "Additional styles for the video player",
-  }, {
+  },
+  {
     prop: "customErrorMessage",
     type: "string",
     default: '"An error occurred while trying to play the video."',
@@ -186,7 +236,8 @@ export const videoProps = [
     prop: "disableDoubleClick",
     type: "boolean",
     default: "false",
-    description: "If true, disables double-click functionality for play/pause or fullscreen.",
+    description:
+      "If true, disables double-click functionality for play/pause or fullscreen.",
   },
   {
     prop: "doubleClickToFullscreen",
@@ -308,7 +359,7 @@ export const videoProps = [
     default: "undefined",
     description: `Get video element reference to access video properties and methods. 
     Learn more about the <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement" class="underline" target="_blank" rel="noopener noreferrer">HTMLMediaElement</a> interface.
-        `,
+`,
   },
 ];
 
@@ -335,37 +386,51 @@ export const audioProps = [
     prop: "controls",
     type: "boolean",
     default: "true",
-    description: "If this attribute is present, the audio player will offer controls to allow the user to control audio playback, including volume, duration, pause/resume playback, playback rate.",
+    description:
+      "If this attribute is present, the audio player will offer controls to allow the user to control audio playback, including volume, duration, pause/resume playback, playback rate.",
   },
   {
     prop: "autoPlay",
     type: "boolean",
     default: "false",
-    description: "A Boolean attribute; if specified, the audio automatically begins to play back as soon as it can without stopping to finish loading the data.",
-  },
-  {
-    prop: "muted",
-    type: "boolean",
-    default: "false",
-    description: "A Boolean attribute that indicates the default audio mute setting contained in the audio. If set, the audio will be initially silenced. Its default value is false, meaning the audio will be played when the audio is played.",
+    description:
+      "A Boolean attribute; if specified, the audio automatically begins to play back as soon as it can without stopping to finish loading the data.",
   },
   {
     prop: "loop",
     type: "boolean",
     default: "false",
-    description: "A Boolean attribute; if specified, the audio player will automatically seek back to the start upon reaching the end of the audio.",
+    description:
+      "A Boolean attribute; if specified, the audio player will automatically seek back to the start upon reaching the end of the audio.",
+  },
+
+  {
+    prop: "maxAutoPlayDuration",
+    type: "number",
+    default: "undefined",
+    description:
+      "Optional guard in seconds. If set, autoplay is blocked for audio longer than this duration.",
+  },
+  {
+    prop: "muted",
+    type: "boolean",
+    default: "false",
+    description:
+      "A Boolean attribute that indicates the default audio mute setting contained in the audio. If set, the audio will be initially silenced. Its default value is false, meaning the audio will be played when the audio is played.",
   },
   {
     prop: "defaultPlaybackRate",
     type: "number",
     default: "undefined",
-    description: "A number indicating the default playback speed of the audio when loaded. The default value is 1.0, which indicates normal speed. The value must be between 0.0625 and 16.0.",
+    description:
+      "A number indicating the default playback speed of the audio when loaded. The default value is 1.0, which indicates normal speed. The value must be between 0.0625 and 16.0.",
   },
   {
     prop: "seekTo",
     type: "number",
     default: "0",
-    description: "A number representing the time in seconds to seek to in the audio when it has loaded",
+    description:
+      "A number representing the time in seconds to seek to in the audio when it has loaded",
   },
   {
     prop: "controlsToExclude",
@@ -390,7 +455,8 @@ export const audioProps = [
     prop: "width",
     type: "string | number",
     default: '"100%"',
-    description: "A string or number representing the width of the audio player. minWidth: 90px",
+    description:
+      "A string or number representing the width of the audio player. minWidth: 90px",
   },
   {
     prop: "className",
@@ -499,13 +565,13 @@ export const audioProps = [
     type: "(ref: HTMLAudioElement | null) => void",
     default: "undefined",
     description: `Get audio element reference to access audio properties and methods. 
-    Learn more about the <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement" class="underline" target="_blank" rel="noopener noreferrer">HTMLMediaElement</a> interface.`
+    Learn more about the <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement" class="underline" target="_blank" rel="noopener noreferrer">HTMLMediaElement</a> interface.`,
   },
   {
     prop: "getWaveSurferRef",
     type: "(ref: WaveSurfer | null) => void",
     default: "undefined",
     description: `Get WaveSurfer instance reference to access WaveSurfer properties and methods. Learn more about the
-     <a href='https://wavesurfer.xyz/docs/classes/wavesurfer.default' class="underline" target='_blank' rel='noopener noreferrer'>WaveSurfer Methods</a>.`
+     <a href='https://wavesurfer.xyz/docs/classes/wavesurfer.default' class="underline" target='_blank' rel='noopener noreferrer'>WaveSurfer Methods</a>.`,
   },
-]
+];
