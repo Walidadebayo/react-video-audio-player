@@ -46,6 +46,7 @@ React Video Audio Player is a lightweight, customisable **React video player** a
 ✅ Video Player works with **MP4, WEBM, OGV/OGG, and MKV**  
 ✅ Responsive and **easy to integrate in React apps**  
 ✅ **Keyboard shortcuts** for easy navigation
+✅ **Customizable UI icons**
 
 ### Video Player
 
@@ -57,6 +58,7 @@ React Video Audio Player is a lightweight, customisable **React video player** a
 - **Playback Speed**: Change the playback speed (0.25x, 0.5x, 0.75x, 1x, 1.25x, 1.5x, 1.75x, 2x).
 - **Seek Control**: Seek to different parts of the video.
 - **Keyboard Shortcuts**: Built-in keyboard shortcuts for better accessibility and user experience.
+- **Custom Icons**: Replace default UI icons with your own custom React components or SVGs.
 - **Poster Auto Generation**: Automatically generate a poster image from the video.
 
 ### Audio Player
@@ -67,6 +69,7 @@ React Video Audio Player is a lightweight, customisable **React video player** a
 - **Playback Speed**: Change the playback speed (0.25x, 0.5x, 0.75x, 1x, 1.25x, 1.5x, 1.75x, 2x).
 - **Seek Control**: Seek to different parts of the audio.
 - **Keyboard Shortcuts**: Built-in keyboard shortcuts for better accessibility and user experience.
+- **Custom Icons**: Replace default UI icons with your own custom React components or SVGs.
 
 ## Installation
 

@@ -144,6 +144,7 @@ export default function Home() {
                 "Video + audio in one package",
                 "Lazy-loads when visible",
                 "Type-safe props and callbacks",
+                "Customizable UI icons",
               ].map((item) => (
                 <div
                   key={item}
@@ -186,6 +187,7 @@ export default function Home() {
                   "Captions and track switching",
                   "Waveform audio with fallback",
                   "Poster generation",
+                  "Customizable UI icons",
                   "Download hooks and shortcuts",
                 ].map((item) => (
                   <div

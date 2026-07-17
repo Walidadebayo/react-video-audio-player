@@ -361,6 +361,12 @@ export const videoProps = [
     Learn more about the <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement" class="underline" target="_blank" rel="noopener noreferrer">HTMLMediaElement</a> interface.
 `,
   },
+  {
+    prop: "icons",
+    type: "VideoPlayerIcons",
+    default: "undefined",
+    description: "Custom icons to override the default icons. Available keys: <b>play, pause, mute, unmute, volume, fullscreen, exitFullscreen, pictureInPicture, exitPictureInPicture, rewind, forward, download, error, captions, settings</b>.",
+  },
 ];
 
 export const audioProps = [
@@ -573,5 +579,11 @@ export const audioProps = [
     default: "undefined",
     description: `Get WaveSurfer instance reference to access WaveSurfer properties and methods. Learn more about the
      <a href='https://wavesurfer.xyz/docs/classes/wavesurfer.default' class="underline" target='_blank' rel='noopener noreferrer'>WaveSurfer Methods</a>.`,
+  },
+  {
+    prop: "icons",
+    type: "AudioPlayerIcons",
+    default: "undefined",
+    description: "Custom icons to override the default icons. Available keys: <b>play, pause, mute, unmute, volume, rewind, forward, download, error</b>.",
   },
 ];

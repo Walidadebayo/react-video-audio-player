@@ -39,13 +39,13 @@ const docsHighlights = [
     icon: PlayCircle,
     title: "Video player",
     description:
-      "Multiple sources, playlist timelines, captions, previews, fullscreen, PiP, and custom control visibility.",
+      "Multiple sources, playlist timelines, captions, previews, fullscreen, PiP, custom icons, and custom control visibility.",
   },
   {
     icon: MicVocal,
     title: "Audio player",
     description:
-      "Waveform playback, peaks loading, keyboard shortcuts, volume, speed, and graceful fallback rendering.",
+      "Waveform playback, peaks loading, keyboard shortcuts, volume, speed, custom icons, and graceful fallback rendering.",
   },
   {
     icon: Layers3,
