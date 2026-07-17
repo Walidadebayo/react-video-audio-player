@@ -53,20 +53,20 @@ const installOptions = [
     icon: ArrowRight,
     description: "Useful for quick prototypes and script-tag integration.",
     code: `<!-- UMD -->
-<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.7/dist/index.umd.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.7/dist/video-audio-player.min.css" />`,
+<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player/dist/index.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/react-video-audio-player/dist/video-audio-player.min.css" />`,
     language: "html",
   },
 ];
 
 export default function InstallationPage() {
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-x-clip">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.14),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),_transparent_28%)]" />
       <div className="mx-auto flex w-full max-w-[100rem] flex-col gap-16 px-4 py-12 md:px-6 lg:px-8">
         <section className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-sm text-muted-foreground shadow-sm backdrop-blur">
+            <div className="inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-sm text-muted-foreground shadow-sm backdrop-blur">
               <PackageOpen className="h-4 w-4 text-cyan-500" />
               Fast setup for the full video and audio package
             </div>
@@ -88,7 +88,12 @@ export default function InstallationPage() {
                   Read the docs
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full px-6">
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="rounded-full px-6"
+              >
                 <Link href="/demo">
                   <Rocket className="h-4 w-4" />
                   Open the demo
@@ -134,7 +139,9 @@ export default function InstallationPage() {
                   <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-500/10 text-xs font-bold text-cyan-700 dark:text-cyan-300">
                     {index + 1}
                   </div>
-                  <p className="text-sm leading-6 text-muted-foreground">{step}</p>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {step}
+                  </p>
                 </div>
               ))}
             </CardContent>
@@ -142,30 +149,34 @@ export default function InstallationPage() {
         </section>
 
         <section className="grid gap-5 md:grid-cols-2">
-          {installOptions.map(({ title, icon: Icon, code, description, language }) => (
-            <Card key={title} className="border-border/60 bg-card/80 shadow-sm backdrop-blur">
-              <CardHeader className="space-y-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
-                  <Icon className="h-4 w-4" />
-                </div>
-                <div>
-                  <CardTitle className="text-xl">{title}</CardTitle>
-                  <CardDescription className="mt-2 text-sm leading-6">
-                    {description}
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <CodeHighlighter language={language} showLineNumbers={false}>
-                  {code}
-                </CodeHighlighter>
-              </CardContent>
-            </Card>
-          ))}
+          {installOptions.map(
+            ({ title, icon: Icon, code, description, language }) => (
+              <Card
+                key={title}
+                className="border-border/60 bg-card/80 shadow-sm backdrop-blur"
+              >
+                <CardHeader className="space-y-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl">{title}</CardTitle>
+                    <CardDescription className="mt-2 text-sm leading-6">
+                      {description}
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <CodeHighlighter language={language} showLineNumbers={false}>
+                    {code}
+                  </CodeHighlighter>
+                </CardContent>
+              </Card>
+            ),
+          )}
         </section>
 
         <section className="grid gap-8">
-            
           <div className="space-y-5 grid md:grid-cols-2 gap-8">
             <Card className="border-border/60 bg-card/80 shadow-sm backdrop-blur">
               <CardHeader>
@@ -173,9 +184,18 @@ export default function InstallationPage() {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3 text-sm leading-7 text-muted-foreground">
-                  <li className="flex gap-2"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />React 16.8 or higher</li>
-                  <li className="flex gap-2"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />Modern browser with HTML5 video/audio support</li>
-                  <li className="flex gap-2"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />Internet connection for streaming media</li>
+                  <li className="flex gap-2">
+                    <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />
+                    React 16.8 or higher
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />
+                    Modern browser with HTML5 video/audio support
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />
+                    Internet connection for streaming media
+                  </li>
                 </ul>
               </CardContent>
             </Card>
@@ -186,21 +206,36 @@ export default function InstallationPage() {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3 text-sm leading-7 text-muted-foreground">
-                  <li className="flex gap-2"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />Chrome (latest)</li>
-                  <li className="flex gap-2"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />Firefox (latest)</li>
-                  <li className="flex gap-2"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />Safari (latest)</li>
-                  <li className="flex gap-2"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />Edge (latest)</li>
-                  <li className="flex gap-2"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />Opera (latest)</li>
+                  <li className="flex gap-2">
+                    <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />
+                    Chrome (latest)
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />
+                    Firefox (latest)
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />
+                    Safari (latest)
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />
+                    Edge (latest)
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />
+                    Opera (latest)
+                  </li>
                 </ul>
               </CardContent>
             </Card>
           </div>
-          <Card className="overflow-hidden border-border/60 bg-card/80 shadow-lg backdrop-blur">
+          <Card className="border-border/60 bg-card/80 shadow-lg backdrop-blur">
             <CardHeader className="border-b border-border/60 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10">
               <CardTitle className="text-3xl">Basic usage</CardTitle>
               <CardDescription className="text-base">
-                Start with the component that fits your media type, then add
-                the optional props your product needs.
+                Start with the component that fits your media type, then add the
+                optional props your product needs.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8 p-6">
@@ -234,10 +269,10 @@ function App() {
                   {`<div id="video-player-container"></div>
 
 <!-- UMD -->
-<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.7/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player/dist/index.umd.min.js"></script>
 <link
   rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.7/dist/video-audio-player.min.css"
+  href="https://cdn.jsdelivr.net/npm/react-video-audio-player/dist/video-audio-player.min.css"
 />
 
 <script>
@@ -283,10 +318,10 @@ function App() {
                 <h3 className="mb-4 text-xl font-bold">UMD Version</h3>
                 <CodeHighlighter language="html">
                   {`<div id="audio-player-container"></div>
-<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.7/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player/dist/index.umd.min.js"></script>
 <link
   rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.7/dist/video-audio-player.min.css"
+  href="https://cdn.jsdelivr.net/npm/react-video-audio-player/dist/video-audio-player.min.css"
 />
 
 <script>
@@ -307,7 +342,6 @@ function App() {
               </div>
             </CardContent>
           </Card>
-
         </section>
 
         <section className="rounded-3xl border border-border/60 bg-gradient-to-r from-cyan-500/10 via-background to-emerald-500/10 p-8 shadow-lg md:p-10">
@@ -331,7 +365,12 @@ function App() {
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full px-6">
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="rounded-full px-6"
+              >
                 <Link href="/demo">Open demo</Link>
               </Button>
             </div>

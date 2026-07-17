@@ -84,10 +84,10 @@ You can also include the package directly via CDN:
 
 ```html
 <!-- UMD -->
-<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.7/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player/dist/index.umd.min.js"></script>
 <link
   rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.7/dist/video-audio-player.min.css"
+  href="https://cdn.jsdelivr.net/npm/react-video-audio-player/dist/video-audio-player.min.css"
 />
 ```
 
@@ -111,16 +111,16 @@ import { VideoPlayer, AudioPlayer } from "react-video-audio-player";
 <div id="audio-player-container"></div>
 
 <!-- UMD -->
-<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.7/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player/dist/index.umd.min.js"></script>
 <link
   rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.7/dist/video-audio-player.min.css"
+  href="https://cdn.jsdelivr.net/npm/react-video-audio-player/dist/video-audio-player.min.css"
 />
 
 <script>
   // Initialise the VideoPlayer
   const videoPlayerContainer = document.getElementById(
-    "video-player-container"
+    "video-player-container",
   );
   const videoPlayer = VideoPlayer({
     src: "video.mp4",
@@ -137,7 +137,7 @@ import { VideoPlayer, AudioPlayer } from "react-video-audio-player";
 
   // Initialise the AudioPlayer
   const audioPlayerContainer = document.getElementById(
-    "audio-player-container"
+    "audio-player-container",
   );
   const audioPlayer = AudioPlayer({
     src: "audio.mp3",

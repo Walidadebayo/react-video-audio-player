@@ -75,12 +75,12 @@ const docsHighlights = [
 
 export default function DocsPage() {
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-x-clip">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.12),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),_transparent_28%)]" />
       <div className="mx-auto flex w-full max-w-[100rem] flex-col gap-16 px-4 py-12 md:px-6 lg:px-8">
         <section className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-sm text-muted-foreground shadow-sm backdrop-blur">
+            <div className="inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-sm text-muted-foreground shadow-sm backdrop-blur">
               <Sparkles className="h-4 w-4 text-cyan-500" />
               Everything you need to ship a polished media player
             </div>
@@ -134,7 +134,7 @@ export default function DocsPage() {
         </section>
 
         <Tabs defaultValue="video" className="w-full">
-          <TabsList className="mb-8 grid w-full grid-cols-3 rounded-2xl bg-muted p-1">
+          <TabsList className="mb-8 grid w-full grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-0 rounded-2xl bg-muted p-1 h-auto">
             <TabsTrigger value="video">Video Player</TabsTrigger>
             <TabsTrigger value="audio">Audio Player</TabsTrigger>
             <TabsTrigger value="examples">Examples</TabsTrigger>
@@ -151,48 +151,50 @@ export default function DocsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                <CodeHighlighter>
-                  {`import { VideoPlayerProps, VideoPreviewOptions, PlaylistItem, PlaylistConfig, preload, VideoControlOptionsToRemove, VideoMimeType, sources } from "react-video-audio-player";`}
-                </CodeHighlighter>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableCaption>Video Player Properties</TableCaption>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-left p-4">Prop</TableHead>
-                        <TableHead className="text-left p-4">Type</TableHead>
-                        <TableHead className="text-left p-4">Default</TableHead>
-                        <TableHead className="text-left p-4">
-                          Description
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {videoProps.map((prop) => (
-                        <TableRow key={prop.prop} className="border-b">
-                          <TableCell className="p-4">
-                            <code className="bg-muted p-1 rounded-md dark:text-[#c678dd] text-[#0000ff]">
-                              {prop.prop}
-                            </code>
-                          </TableCell>
-                          <TableCell className="p-4">
-                            <code>{prop.type}</code>
-                          </TableCell>
-                          <TableCell className="p-4">
-                            <code>{prop.default}</code>
-                          </TableCell>
-                          <TableCell className="p-4">
-                            <div
-                              dangerouslySetInnerHTML={{
-                                __html: prop.description || "",
-                              }}
-                            />
-                          </TableCell>
+                  <CodeHighlighter>
+                    {`import { VideoPlayerProps, VideoPreviewOptions, PlaylistItem, PlaylistConfig, preload, VideoControlOptionsToRemove, VideoMimeType, sources } from "react-video-audio-player";`}
+                  </CodeHighlighter>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableCaption>Video Player Properties</TableCaption>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-left p-4">Prop</TableHead>
+                          <TableHead className="text-left p-4">Type</TableHead>
+                          <TableHead className="text-left p-4">
+                            Default
+                          </TableHead>
+                          <TableHead className="text-left p-4">
+                            Description
+                          </TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {videoProps.map((prop) => (
+                          <TableRow key={prop.prop} className="border-b">
+                            <TableCell className="p-4">
+                              <code className="bg-muted p-1 rounded-md dark:text-[#c678dd] text-[#0000ff]">
+                                {prop.prop}
+                              </code>
+                            </TableCell>
+                            <TableCell className="p-4">
+                              <code>{prop.type}</code>
+                            </TableCell>
+                            <TableCell className="p-4">
+                              <code>{prop.default}</code>
+                            </TableCell>
+                            <TableCell className="p-4">
+                              <div
+                                dangerouslySetInnerHTML={{
+                                  __html: prop.description || "",
+                                }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -201,8 +203,8 @@ export default function DocsPage() {
                   <CardTitle className="text-3xl">Example Usage</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                <CodeHighlighter>
-                  {`import { VideoPlayer } from 'react-video-audio-player';
+                  <CodeHighlighter>
+                    {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   return (
@@ -220,13 +222,13 @@ function App() {
     />
   );
 }`}
-                </CodeHighlighter>
-                <div>
-                  <h3 className="text-2xl font-bold mb-2">
-                    Multiple Videos Playlist
-                  </h3>
-                  <CodeHighlighter>
-                    {`import { VideoPlayer } from 'react-video-audio-player';
+                  </CodeHighlighter>
+                  <div>
+                    <h3 className="text-2xl font-bold mb-2">
+                      Multiple Videos Playlist
+                    </h3>
+                    <CodeHighlighter>
+                      {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const playlist = {
@@ -240,8 +242,8 @@ function App() {
 
   return <VideoPlayer playlist={playlist} controls />;
 }`}
-                  </CodeHighlighter>
-                </div>
+                    </CodeHighlighter>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -250,35 +252,35 @@ function App() {
                   <CardTitle className="text-3xl">Keyboard Shortcuts</CardTitle>
                 </CardHeader>
                 <CardContent>
-                <ul className="list-disc pl-6 space-y-2">
-                  <li>
-                    <code>Space</code> - Play/Pause
-                  </li>
-                  <li>
-                    <code>M</code> - Mute/Unmute
-                  </li>
-                  <li>
-                    <code>F</code> - Toggle Fullscreen
-                  </li>
-                  <li>
-                    <code>P</code> - Picture-in-Picture
-                  </li>
-                  <li>
-                    <code>←</code> - Seek -10s
-                  </li>
-                  <li>
-                    <code>→</code> - Seek +10s
-                  </li>
-                  <li>
-                    <code>↑</code> - Volume Up
-                  </li>
-                  <li>
-                    <code>↓</code> - Volume Down
-                  </li>
-                  <li>
-                    <code>S</code> - Change Speed
-                  </li>
-                </ul>
+                  <ul className="list-disc pl-6 space-y-2">
+                    <li>
+                      <code>Space</code> - Play/Pause
+                    </li>
+                    <li>
+                      <code>M</code> - Mute/Unmute
+                    </li>
+                    <li>
+                      <code>F</code> - Toggle Fullscreen
+                    </li>
+                    <li>
+                      <code>P</code> - Picture-in-Picture
+                    </li>
+                    <li>
+                      <code>←</code> - Seek -10s
+                    </li>
+                    <li>
+                      <code>→</code> - Seek +10s
+                    </li>
+                    <li>
+                      <code>↑</code> - Volume Up
+                    </li>
+                    <li>
+                      <code>↓</code> - Volume Down
+                    </li>
+                    <li>
+                      <code>S</code> - Change Speed
+                    </li>
+                  </ul>
                 </CardContent>
               </Card>
             </div>
@@ -295,48 +297,50 @@ function App() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                <CodeHighlighter>
-                  {`import { AudioPlayerProps, AudioControlOptionsToRemove } from "react-video-audio-player"; `}
-                </CodeHighlighter>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableCaption>Audio Player Properties</TableCaption>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-left p-4">Prop</TableHead>
-                        <TableHead className="text-left p-4">Type</TableHead>
-                        <TableHead className="text-left p-4">Default</TableHead>
-                        <TableHead className="text-left p-4">
-                          Description
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {audioProps.map((prop) => (
-                        <TableRow key={prop.prop} className="border-b">
-                          <TableCell className="p-4">
-                            <code className="bg-muted p-1 rounded-md dark:text-[#c678dd] text-[#0000ff]">
-                              {prop.prop}
-                            </code>
-                          </TableCell>
-                          <TableCell className="p-4">
-                            <code>{prop.type}</code>
-                          </TableCell>
-                          <TableCell className="p-4">
-                            <code>{prop.default}</code>
-                          </TableCell>
-                          <TableCell className="p-4">
-                            <div
-                              dangerouslySetInnerHTML={{
-                                __html: prop.description || "",
-                              }}
-                            />
-                          </TableCell>
+                  <CodeHighlighter>
+                    {`import { AudioPlayerProps, AudioControlOptionsToRemove } from "react-video-audio-player"; `}
+                  </CodeHighlighter>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableCaption>Audio Player Properties</TableCaption>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-left p-4">Prop</TableHead>
+                          <TableHead className="text-left p-4">Type</TableHead>
+                          <TableHead className="text-left p-4">
+                            Default
+                          </TableHead>
+                          <TableHead className="text-left p-4">
+                            Description
+                          </TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {audioProps.map((prop) => (
+                          <TableRow key={prop.prop} className="border-b">
+                            <TableCell className="p-4">
+                              <code className="bg-muted p-1 rounded-md dark:text-[#c678dd] text-[#0000ff]">
+                                {prop.prop}
+                              </code>
+                            </TableCell>
+                            <TableCell className="p-4">
+                              <code>{prop.type}</code>
+                            </TableCell>
+                            <TableCell className="p-4">
+                              <code>{prop.default}</code>
+                            </TableCell>
+                            <TableCell className="p-4">
+                              <div
+                                dangerouslySetInnerHTML={{
+                                  __html: prop.description || "",
+                                }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -345,8 +349,8 @@ function App() {
                   <CardTitle className="text-3xl">Example Usage</CardTitle>
                 </CardHeader>
                 <CardContent>
-                <CodeHighlighter>
-                  {`import { AudioPlayer } from 'react-video-audio-player';
+                  <CodeHighlighter>
+                    {`import { AudioPlayer } from 'react-video-audio-player';
 
 function App() {
   return (
@@ -361,7 +365,7 @@ function App() {
     />
   );
 }`}
-                </CodeHighlighter>
+                  </CodeHighlighter>
                 </CardContent>
               </Card>
 
@@ -370,51 +374,53 @@ function App() {
                   <CardTitle className="text-3xl">Keyboard Shortcuts</CardTitle>
                 </CardHeader>
                 <CardContent>
-                <ul className="list-disc pl-6 space-y-2">
-                  <li>
-                    <code>Space</code> - Play/Pause
-                  </li>
-                  <li>
-                    <code>M</code> - Mute/Unmute
-                  </li>
-                  <li>
-                    <code>←</code> - Seek -10s
-                  </li>
-                  <li>
-                    <code>→</code> - Seek +10s
-                  </li>
-                  <li>
-                    <code>↑</code> - Volume Up
-                  </li>
-                  <li>
-                    <code>↓</code> - Volume Down
-                  </li>
-                  <li>
-                    <code>S</code> - Change Speed
-                  </li>
-                </ul>
+                  <ul className="list-disc pl-6 space-y-2">
+                    <li>
+                      <code>Space</code> - Play/Pause
+                    </li>
+                    <li>
+                      <code>M</code> - Mute/Unmute
+                    </li>
+                    <li>
+                      <code>←</code> - Seek -10s
+                    </li>
+                    <li>
+                      <code>→</code> - Seek +10s
+                    </li>
+                    <li>
+                      <code>↑</code> - Volume Up
+                    </li>
+                    <li>
+                      <code>↓</code> - Volume Down
+                    </li>
+                    <li>
+                      <code>S</code> - Change Speed
+                    </li>
+                  </ul>
                 </CardContent>
               </Card>
 
               <Card className="border-border/60 bg-card/80 shadow-sm backdrop-blur">
                 <CardHeader>
-                  <CardTitle className="text-3xl">WaveSurfer Integration</CardTitle>
+                  <CardTitle className="text-3xl">
+                    WaveSurfer Integration
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                <p>
-                  The audio player uses WaveSurfer.js for waveform
-                  visualisation. For more information about WaveSurfer and its
-                  features, visit the{" "}
-                  <Link
-                    href="https://wavesurfer.xyz/docs/classes/wavesurfer.default"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary underline"
-                  >
-                    WaveSurfer Documentation
-                  </Link>
-                  .
-                </p>
+                  <p>
+                    The audio player uses WaveSurfer.js for waveform
+                    visualisation. For more information about WaveSurfer and its
+                    features, visit the{" "}
+                    <Link
+                      href="https://wavesurfer.xyz/docs/classes/wavesurfer.default"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline"
+                    >
+                      WaveSurfer Documentation
+                    </Link>
+                    .
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -440,16 +446,16 @@ const longTime = formatTime(3661); // "1:01:01"`}
                   </CodeHighlighter>
                   <div>
                     <h3 className="text-2xl font-bold my-4">CDN Usage</h3>
-                  <CodeHighlighter language="html">
-                    {`
+                    <CodeHighlighter language="html">
+                      {`
 <div id="video-player-container"></div>
 <div id="audio-player-container"></div>
 
 <!-- UMD -->
-<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.7/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-video-audio-player/dist/index.umd.min.js"></script>
 <link
   rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/react-video-audio-player@1.3.7/dist/video-audio-player.min.css"
+  href="https://cdn.jsdelivr.net/npm/react-video-audio-player/dist/video-audio-player.min.css"
 />
 
 <script>
@@ -482,18 +488,18 @@ const longTime = formatTime(3661); // "1:01:01"`}
   });
   audioPlayerContainer.appendChild(audioPlayer);
 </script>`}
-                  </CodeHighlighter>
+                    </CodeHighlighter>
                   </div>
 
                   <h2 className="text-3xl font-bold my-4">Callback Examples</h2>
 
                   <div className="space-y-6">
-                  <div>
-                    <h3 className="text-2xl font-bold mb-4">
-                      Progress Tracking
-                    </h3>
-                    <CodeHighlighter>
-                      {`import { VideoPlayer } from 'react-video-audio-player';
+                    <div>
+                      <h3 className="text-2xl font-bold mb-4">
+                        Progress Tracking
+                      </h3>
+                      <CodeHighlighter>
+                        {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handleProgress = (currentTime: number, duration: number) => {
@@ -508,15 +514,15 @@ function App() {
     />
   );
 }`}
-                    </CodeHighlighter>
-                  </div>
+                      </CodeHighlighter>
+                    </div>
 
-                  <div>
-                    <h3 className="text-2xl font-bold mb-4">
-                      Player State Management
-                    </h3>
-                    <CodeHighlighter>
-                      {`import { useState } from 'react';
+                    <div>
+                      <h3 className="text-2xl font-bold mb-4">
+                        Player State Management
+                      </h3>
+                      <CodeHighlighter>
+                        {`import { useState } from 'react';
 import { AudioPlayer } from 'react-video-audio-player';
 
 function App() {
@@ -536,13 +542,15 @@ function App() {
     />
   );
 }`}
-                    </CodeHighlighter>
-                  </div>
+                      </CodeHighlighter>
+                    </div>
 
-                  <div>
-                    <h3 className="text-2xl font-bold mb-4">Error Handling</h3>
-                    <CodeHighlighter>
-                      {`import { VideoPlayer } from 'react-video-audio-player';
+                    <div>
+                      <h3 className="text-2xl font-bold mb-4">
+                        Error Handling
+                      </h3>
+                      <CodeHighlighter>
+                        {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handleError = () => {
@@ -558,15 +566,15 @@ function App() {
     />
   );
 }`}
-                    </CodeHighlighter>
-                  </div>
+                      </CodeHighlighter>
+                    </div>
 
-                  <div>
-                    <h3 className="text-2xl font-bold mb-4">
-                      Player References
-                    </h3>
-                    <CodeHighlighter>
-                      {`import { useRef } from 'react';
+                    <div>
+                      <h3 className="text-2xl font-bold mb-4">
+                        Player References
+                      </h3>
+                      <CodeHighlighter>
+                        {`import { useRef } from 'react';
 import { VideoPlayer, AudioPlayer } from 'react-video-audio-player';
 
 function App() {
@@ -607,13 +615,15 @@ function App() {
     </div>
   );
 }`}
-                    </CodeHighlighter>
-                  </div>
+                      </CodeHighlighter>
+                    </div>
 
-                  <div>
-                    <h3 className="text-2xl font-bold mb-4">Seeked Callback</h3>
-                    <CodeHighlighter>
-                      {`import { VideoPlayer } from 'react-video-audio-player';
+                    <div>
+                      <h3 className="text-2xl font-bold mb-4">
+                        Seeked Callback
+                      </h3>
+                      <CodeHighlighter>
+                        {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handleSeeked = (time: number) => {
@@ -627,13 +637,15 @@ function App() {
     />
   );
 }`}
-                    </CodeHighlighter>
-                  </div>
+                      </CodeHighlighter>
+                    </div>
 
-                  <div>
-                    <h3 className="text-2xl font-bold mb-4">Ready Callback</h3>
-                    <CodeHighlighter>
-                      {`import { VideoPlayer } from 'react-video-audio-player';
+                    <div>
+                      <h3 className="text-2xl font-bold mb-4">
+                        Ready Callback
+                      </h3>
+                      <CodeHighlighter>
+                        {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handleReady = () => {
@@ -647,15 +659,15 @@ function App() {
     />
   );
 }`}
-                    </CodeHighlighter>
-                  </div>
+                      </CodeHighlighter>
+                    </div>
 
-                  <div>
-                    <h3 className="text-2xl font-bold mb-4">
-                      Duration Callback
-                    </h3>
-                    <CodeHighlighter>
-                      {`import { VideoPlayer } from 'react-video-audio-player';
+                    <div>
+                      <h3 className="text-2xl font-bold mb-4">
+                        Duration Callback
+                      </h3>
+                      <CodeHighlighter>
+                        {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handleDuration = (duration: number) => {
@@ -669,13 +681,13 @@ function App() {
     />
   );
 }`}
-                    </CodeHighlighter>
-                  </div>
+                      </CodeHighlighter>
+                    </div>
 
-                  <div>
-                    <h3 className="text-2xl font-bold mb-4">Play Callback</h3>
-                    <CodeHighlighter>
-                      {`import { VideoPlayer } from 'react-video-audio-player';
+                    <div>
+                      <h3 className="text-2xl font-bold mb-4">Play Callback</h3>
+                      <CodeHighlighter>
+                        {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handlePlay = () => {
@@ -689,13 +701,15 @@ function App() {
     />
   );
 }`}
-                    </CodeHighlighter>
-                  </div>
+                      </CodeHighlighter>
+                    </div>
 
-                  <div>
-                    <h3 className="text-2xl font-bold mb-4">Pause Callback</h3>
-                    <CodeHighlighter>
-                      {`import { VideoPlayer } from 'react-video-audio-player';
+                    <div>
+                      <h3 className="text-2xl font-bold mb-4">
+                        Pause Callback
+                      </h3>
+                      <CodeHighlighter>
+                        {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handlePause = () => {
@@ -709,13 +723,15 @@ function App() {
     />
   );
 }`}
-                    </CodeHighlighter>
-                  </div>
+                      </CodeHighlighter>
+                    </div>
 
-                  <div>
-                    <h3 className="text-2xl font-bold mb-4">Ended Callback</h3>
-                    <CodeHighlighter>
-                      {`import { VideoPlayer } from 'react-video-audio-player';
+                    <div>
+                      <h3 className="text-2xl font-bold mb-4">
+                        Ended Callback
+                      </h3>
+                      <CodeHighlighter>
+                        {`import { VideoPlayer } from 'react-video-audio-player';
 
 function App() {
   const handleEnded = () => {
@@ -729,9 +745,9 @@ function App() {
     />
   );
 }`}
-                    </CodeHighlighter>
+                      </CodeHighlighter>
+                    </div>
                   </div>
-                </div>
                 </CardContent>
               </Card>
             </div>

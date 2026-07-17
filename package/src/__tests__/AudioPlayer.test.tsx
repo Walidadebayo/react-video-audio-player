@@ -9,7 +9,7 @@ const mockWaveSurferCreate = jest.fn(() => {
   let playing = false;
   let volume = 1;
   let currentTime = 0;
-  const duration = 600;
+  const duration = 0;
 
   const instance: Record<string, unknown> = {};
 
@@ -73,8 +73,9 @@ const mockWaveSurferCreate = jest.fn(() => {
 jest.mock("wavesurfer.js", () => ({
   __esModule: true,
   default: {
-    create: mockWaveSurferCreate,
+    create: (...args: unknown[]) => mockWaveSurferCreate(...args),
   },
+  create: (...args: unknown[]) => mockWaveSurferCreate(...args),
 }));
 
 // Mock matchMedia
@@ -148,10 +149,16 @@ describe("AudioPlayer", () => {
     const { container } = render(<AudioPlayer {...defaultProps} />);
 
     await act(async () => {
-      jest.advanceTimersByTime(3600);
+      jest.advanceTimersByTime(15000);
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(15000);
+      await Promise.resolve();
     });
 
     expect(container.querySelector("audio")).toBeInTheDocument();
-    expect(mockWaveSurferCreate).not.toHaveBeenCalled();
+    expect(mockWaveSurferCreate).toHaveBeenCalled();
   });
 });

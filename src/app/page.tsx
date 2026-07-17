@@ -92,14 +92,14 @@ const capabilityCards = [
 
 export default function Home() {
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-x-clip">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.16),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(20,184,166,0.12),_transparent_28%),linear-gradient(to_bottom,_rgba(2,6,23,0.02),_transparent)]" />
       <div className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[32rem] w-[32rem] -translate-x-1/2 rounded-full bg-cyan-400/20 blur-3xl" />
 
       <main className="mx-auto flex w-full max-w-[100rem] flex-col gap-24 px-4 py-16 md:px-6 lg:px-8">
         <section className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
           <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-sm text-muted-foreground shadow-sm backdrop-blur">
+            <div className="inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-sm text-muted-foreground shadow-sm backdrop-blur">
               <Sparkles className="h-4 w-4 text-cyan-500" />
               Built for polished video and audio experiences
             </div>
@@ -164,9 +164,9 @@ export default function Home() {
             </div>
           </div>
 
-          <Card className="overflow-hidden border-border/60 bg-card/80 shadow-2xl shadow-cyan-950/10 backdrop-blur">
+          <Card className="border-border/60 bg-card/80 shadow-2xl shadow-cyan-950/10 backdrop-blur">
             <CardHeader className="space-y-4 border-b border-border/60 bg-gradient-to-br from-cyan-500/10 via-transparent to-emerald-500/10">
-              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              <div className="inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                 Product-ready features
               </div>
               <CardTitle className="text-3xl leading-tight">
@@ -207,7 +207,7 @@ export default function Home() {
                   <div className="h-3 w-[90%] rounded-full bg-foreground/10" />
                   <div className="h-3 w-[64%] rounded-full bg-foreground/10" />
                 </div>
-                <div className="mt-5 grid grid-cols-3 gap-3">
+                <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {[
                     "Controls",
                     "Tracks",
@@ -298,7 +298,7 @@ export default function Home() {
           </div>
 
           <div className="grid gap-8 xl:grid-cols-2 items-start">
-            <Card className="overflow-hidden border-border/60 bg-card/80 shadow-lg backdrop-blur">
+            <Card className="border-border/60 bg-card/80 shadow-lg backdrop-blur">
               <CardHeader className="space-y-3 border-b border-border/60 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10">
                 <CardTitle className="text-2xl">Video Player</CardTitle>
                 <CardDescription className="text-sm leading-7">
@@ -306,16 +306,16 @@ export default function Home() {
                   customization in one component.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-4 md:p-6">
+              <CardContent className="p-4 flex justify-center items-center md:p-6 ">
                 <VideoPlayer
                   src="https://cdn.pixabay.com/video/2026/04/17/347325_large.mp4"
-                  className="rounded-2xl sm:!w-[800px] w-auto"
-                  generatePosterAt={600}
+                  className="rounded-2xl w-full sm:!w-[800px] max-w-full"
+                  generatePosterAt={600} 
                 />
               </CardContent>
             </Card>
 
-            <Card className="overflow-hidden border-border/60 bg-card/80 shadow-lg backdrop-blur">
+            <Card className="border-border/60 bg-card/80 shadow-lg backdrop-blur">
               <CardHeader className="space-y-3 border-b border-border/60 bg-gradient-to-br from-emerald-500/10 via-transparent to-teal-500/10">
                 <CardTitle className="text-2xl">Audio Player</CardTitle>
                 <CardDescription className="text-sm leading-7">

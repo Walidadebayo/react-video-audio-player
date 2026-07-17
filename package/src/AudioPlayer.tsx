@@ -23,6 +23,18 @@ export type AudioControlOptionsToRemove =
   | "current-time"
   | "duration";
 
+export interface AudioPlayerIcons {
+  play?: React.ReactNode;
+  pause?: React.ReactNode;
+  mute?: React.ReactNode;
+  unmute?: React.ReactNode;
+  volume?: React.ReactNode;
+  rewind?: React.ReactNode;
+  forward?: React.ReactNode;
+  download?: React.ReactNode;
+  error?: React.ReactNode;
+}
+
 export interface AudioPlayerProps {
   src: string;
   accentColor?: string;
@@ -56,6 +68,7 @@ export interface AudioPlayerProps {
   onDuration?: (duration: number) => void;
   getWaveSurferRef?: (ref: WaveSurfer | null) => void;
   getAudioElement?: (ref: HTMLAudioElement | null) => void;
+  icons?: AudioPlayerIcons;
 }
 
 const AudioPlayer = ({
@@ -91,6 +104,7 @@ const AudioPlayer = ({
   onDuration,
   getWaveSurferRef,
   getAudioElement,
+  icons = {},
 }: AudioPlayerProps) => {
   const waveformRef = useRef<HTMLDivElement>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
@@ -102,6 +116,9 @@ const AudioPlayer = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [audioError, setAudioError] = useState(false);
+  const [errorType, setErrorType] = useState<
+    "unsupported" | "network" | "decode" | "aborted" | "unknown" | null
+  >(null);
   const waveSurfer = useRef<WaveSurfer | null>(null);
   const desiredPlayRef = useRef<boolean | null>(null);
   const desiredMuteRef = useRef<boolean | null>(null);
@@ -114,6 +131,14 @@ const AudioPlayer = ({
   const [reload, setReload] = useState(false);
   const [reverseCurrentTime, setReverseCurrentTime] = useState(false);
   const [useWaveform, setUseWaveform] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const getIcon = (
+    iconName: keyof AudioPlayerIcons,
+    defaultIcon: React.ReactNode,
+  ) => {
+    return (icons as AudioPlayerIcons | undefined)?.[iconName] ?? defaultIcon;
+  };
 
   useEffect(() => {
     const volumeInput = volumeInputRef.current;
@@ -213,6 +238,10 @@ const AudioPlayer = ({
       }
     };
   }, []);
+
+  useEffect(() => {
+    setUseWaveform(true);
+  }, [src]);
 
   const togglePlay = useCallback(() => {
     setIsPlaying((p) => {
@@ -421,6 +450,7 @@ const AudioPlayer = ({
 
   const reloadAudio = () => {
     setAudioError(false);
+    setErrorType(null);
     setUseWaveform(true);
     setTimeout(() => {
       setReload(!reload);
@@ -431,6 +461,8 @@ const AudioPlayer = ({
   useEffect(() => {
     const handleError = () => {
       setAudioError(true);
+      setErrorType("decode"); // WaveSurfer errors are typically decode errors
+      setIsLoading(false);
       if (onError) {
         onError();
       }
@@ -468,6 +500,7 @@ const AudioPlayer = ({
     };
 
     const handleReady = () => {
+      setIsLoading(false);
       const duration = waveSurfer.current?.getDuration() || 0;
       setDuration(duration);
       if (onReady) {
@@ -524,13 +557,12 @@ const AudioPlayer = ({
       (async () => {
         const container = waveformRef.current!;
         let durationSeconds = 0;
-        let shouldFallback = false;
         try {
           const probe = document.createElement("audio");
           probe.crossOrigin = "anonymous";
           probe.preload = "metadata";
           probe.src = src;
-          const probeTimeoutMs = 3500;
+          const probeTimeoutMs = 15000;
           await new Promise<void>((resolve) => {
             let settled = false;
             const settle = () => {
@@ -543,19 +575,21 @@ const AudioPlayer = ({
               durationSeconds = probe.duration || 0;
               settle();
             };
+            const onCanPlay = () => {
+              if (durationSeconds) {
+                settle();
+              }
+            };
             const onError = () => {
-              shouldFallback = true;
-              setUseWaveform(false);
               settle();
             };
             const timeoutId = window.setTimeout(() => {
-              shouldFallback = true;
-              setUseWaveform(false);
               settle();
             }, probeTimeoutMs);
             function cleanup() {
               window.clearTimeout(timeoutId);
               probe.removeEventListener("loadedmetadata", onLoaded);
+              probe.removeEventListener("canplay", onCanPlay);
               probe.removeEventListener("error", onError);
               try {
                 probe.src = "";
@@ -564,12 +598,13 @@ const AudioPlayer = ({
               }
             }
             probe.addEventListener("loadedmetadata", onLoaded);
+            probe.addEventListener("canplay", onCanPlay);
             probe.addEventListener("error", onError);
           });
         } catch (err) {
           console.warn("Audio probe failed", err);
         }
-        if (cancelled || shouldFallback) return;
+        if (cancelled) return;
         const LONG_AUDIO_SECONDS = 30 * 60; // 30 minutes
         const isLong = durationSeconds && durationSeconds > LONG_AUDIO_SECONDS;
         let peaks: number[] | null = null;
@@ -603,13 +638,15 @@ const AudioPlayer = ({
           wsOptions.backend = "MediaElement";
         }
 
+        setIsLoading(true);
         waveSurfer.current = WaveSurfer.create(wsOptions);
         setCurrentTime(0);
 
         try {
           // install a ready wrapper so we can fallback if "ready" never fires
           let readyFired = false;
-          readyHandlerRef = () => {
+          const markReady = () => {
+            if (readyFired) return;
             readyFired = true;
             if (fallbackTimer) {
               clearTimeout(fallbackTimer);
@@ -617,6 +654,7 @@ const AudioPlayer = ({
             }
             handleReady();
           };
+          readyHandlerRef = markReady;
 
           waveSurfer.current.on("ready", readyHandlerRef);
           waveSurfer.current.on("finish", handleEnded);
@@ -642,10 +680,28 @@ const AudioPlayer = ({
             waveSurfer.current.on("click", handleClick);
           }
 
+          window.setTimeout(() => {
+            try {
+              if (!readyFired) {
+                const knownDuration = waveSurfer.current?.getDuration?.() || 0;
+                if (knownDuration > 0) {
+                  markReady();
+                }
+              }
+            } catch {
+              /* ignore */
+            }
+          }, 0);
+
           // if ready doesn't fire within reasonable time, fallback to plain audio element
           fallbackTimer = window.setTimeout(() => {
             try {
               if (!readyFired) {
+                const knownDuration = waveSurfer.current?.getDuration?.() || 0;
+                if (knownDuration > 0) {
+                  markReady();
+                  return;
+                }
                 try {
                   waveSurfer.current?.destroy();
                 } catch {
@@ -653,11 +709,12 @@ const AudioPlayer = ({
                 }
                 waveSurfer.current = null;
                 setUseWaveform(false);
+                setIsLoading(false);
               }
             } catch {
               /* ignore */
             }
-          }, 8000);
+          }, 15000);
         } catch (err) {
           console.warn("Error binding WaveSurfer events", err);
         }
@@ -780,10 +837,12 @@ const AudioPlayer = ({
   useEffect(() => {
     if (!useWaveform && audioElRef.current) {
       const audio = audioElRef.current;
+      setIsLoading(true);
 
       const audio_onLoadedMetadata = () => {
         const d = audio.duration || 0;
         setDuration(d);
+        setIsLoading(false);
         const shouldAutoplay =
           autoPlay && (!maxAutoPlayDuration || d <= maxAutoPlayDuration);
         if (shouldAutoplay && !audio.autoplay) {
@@ -818,7 +877,30 @@ const AudioPlayer = ({
       };
 
       const audio_onError = () => {
+        // Detect error type from audio element error code
+        let type: "unsupported" | "network" | "decode" | "aborted" | "unknown" =
+          "unknown";
+        if (audio?.error) {
+          switch (audio.error.code) {
+            case 1: // MEDIA_ERR_ABORTED
+              type = "aborted";
+              break;
+            case 2: // MEDIA_ERR_NETWORK
+              type = "network";
+              break;
+            case 3: // MEDIA_ERR_DECODE
+              type = "decode";
+              break;
+            case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+              type = "unsupported";
+              break;
+            default:
+              type = "unknown";
+          }
+        }
         setAudioError(true);
+        setErrorType(type);
+        setIsLoading(false);
         if (onError) onError();
       };
 
@@ -928,25 +1010,73 @@ const AudioPlayer = ({
     >
       {audioError ? (
         <div className="error-message">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-            <path d="M12 9v4" />
-            <path d="M12 17h.01" />
-          </svg>
+          {getIcon(
+            "error",
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+              <path d="M12 9v4" />
+              <path d="M12 17h.01" />
+            </svg>,
+          )}
           <span>
-            <strong>Error:</strong> {customErrorMessage}
+            <strong>Error:</strong>{" "}
+            {errorType === "unsupported"
+              ? "This audio format is not supported by your browser. You can download it and play it on your device."
+              : errorType === "network"
+                ? "A network error occurred while trying to load the audio. Please check your connection."
+                : errorType === "decode"
+                  ? "The audio could not be decoded. The format might not be supported."
+                  : customErrorMessage}
           </span>
-          <button onClick={reloadAudio}>Reload</button>
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              marginTop: "8px",
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
+            <button
+              onClick={reloadAudio}
+              style={{
+                padding: "6px 12px",
+                fontSize: "12px",
+              }}
+            >
+              Reload
+            </button>
+            {(errorType === "unsupported" ||
+              errorType === "decode" ||
+              errorType === "unknown") && (
+              <button
+                onClick={handleDownloadClick}
+                disabled={isDownloading}
+                style={{
+                  padding: "6px 12px",
+                  backgroundColor: accentColor,
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: isDownloading ? "not-allowed" : "pointer",
+                  opacity: isDownloading ? 0.6 : 1,
+                  fontSize: "12px",
+                }}
+              >
+                {isDownloading ? "Downloading..." : "Download Audio"}
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <div className="controls">
@@ -958,36 +1088,40 @@ const AudioPlayer = ({
                   className="accent-color-hover play-pause-button"
                   aria-label={isPlaying ? "Pause" : "Play"}
                 >
-                  {!isPlaying ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polygon points="6 3 20 12 6 21 6 3" />
-                    </svg>
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="14" y="4" width="4" height="16" rx="1" />
-                      <rect x="6" y="4" width="4" height="16" rx="1" />
-                    </svg>
-                  )}
+                  {!isPlaying
+                    ? getIcon(
+                        "play",
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polygon points="6 3 20 12 6 21 6 3" />
+                        </svg>,
+                      )
+                    : getIcon(
+                        "pause",
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect x="14" y="4" width="4" height="16" rx="1" />
+                          <rect x="6" y="4" width="4" height="16" rx="1" />
+                        </svg>,
+                      )}
                 </button>
               )}
               <button
@@ -1043,7 +1177,15 @@ const AudioPlayer = ({
               className="waveform"
               style={{ width: "100%", height: "100%", cursor: "pointer" }}
               aria-label="Audio waveform"
-            />
+            >
+              {isLoading && (
+                <div className="loading-overlay">
+                  <div className="spinner-container" aria-hidden>
+                    <div className="spinner" />
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <div
               ref={waveformRef}
@@ -1051,6 +1193,13 @@ const AudioPlayer = ({
               style={{ width: "100%", height: "100%", cursor: "pointer" }}
               aria-label="Audio waveform"
             >
+              {isLoading && (
+                <div className="loading-overlay">
+                  <div className="spinner-container" aria-hidden>
+                    <div className="spinner" />
+                  </div>
+                </div>
+              )}
               <audio
                 ref={audioElRef}
                 src={src}
@@ -1111,39 +1260,43 @@ const AudioPlayer = ({
                   }`}
                   aria-label={isMuted || muted ? "Unmute" : "Mute"}
                 >
-                  {isMuted ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" />
-                      <line x1="22" x2="16" y1="9" y2="15" />
-                      <line x1="16" x2="22" y1="9" y2="15" />
-                    </svg>
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" />
-                      <path d="M16 9a5 5 0 0 1 0 6" />
-                      <path d="M19.364 18.364a9 9 0 0 0 0-12.728" />
-                    </svg>
-                  )}
+                  {isMuted
+                    ? getIcon(
+                        "mute",
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" />
+                          <line x1="22" x2="16" y1="9" y2="15" />
+                          <line x1="16" x2="22" y1="9" y2="15" />
+                        </svg>,
+                      )
+                    : getIcon(
+                        "unmute",
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" />
+                          <path d="M16 9a5 5 0 0 1 0 6" />
+                          <path d="M19.364 18.364a9 9 0 0 0 0-12.728" />
+                        </svg>,
+                      )}
                 </button>
               )}
               {!controlsToExclude.includes("volume") && (
@@ -1168,23 +1321,26 @@ const AudioPlayer = ({
                     className="download-button accent-color"
                     aria-label="Download video"
                   >
-                    {!isDownloading ? (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" x2="12" y1="15" y2="3" />
-                      </svg>
-                    ) : (
+                    {!isDownloading
+                      ? getIcon(
+                          "download",
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" x2="12" y1="15" y2="3" />
+                          </svg>,
+                        )
+                      : (
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         width="18"
@@ -1216,23 +1372,26 @@ const AudioPlayer = ({
                 className="download-button accent-color"
                 aria-label="Download video"
               >
-                {!isDownloading ? (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" x2="12" y1="15" y2="3" />
-                  </svg>
-                ) : (
+                {!isDownloading
+                  ? getIcon(
+                      "download",
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" x2="12" y1="15" y2="3" />
+                      </svg>,
+                    )
+                  : (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="18"

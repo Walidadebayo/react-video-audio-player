@@ -132,12 +132,12 @@ export default function DemoPage() {
   );
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-x-clip">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.14),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),_transparent_28%)]" />
       <div className="mx-auto max-w-[100rem] px-4 py-12 md:px-6 lg:px-8">
         <section className="mb-12 grid gap-8 rounded-[2rem] border border-border/60 bg-card/80 p-6 shadow-xl backdrop-blur lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-sm text-muted-foreground">
+            <div className="inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-sm text-muted-foreground">
               <Sparkles className="h-4 w-4 text-cyan-500" />
               Interactive playground for the full component set
             </div>
@@ -213,7 +213,7 @@ export default function DemoPage() {
               </CardHeader>
               <CardContent className="grid gap-8 p-6 lg:grid-cols-2">
                 <div>
-                  <VideoPlayer {...videoConfig} className="rounded-2xl" />
+                  <VideoPlayer {...videoConfig} className="rounded-2xl w-full max-w-full" />
                 </div>
                 <div className="space-y-6">
                   <div>
@@ -238,7 +238,7 @@ export default function DemoPage() {
                       className="mt-1"
                     />
                   </div> */}
-                  <div className="grid grid-cols-2 gap-4 max-xs:grid-cols-1">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <Label htmlFor="videoAccentColor">Accent Color</Label>
                       <span className="mt-1 flex gap-2">
@@ -297,7 +297,7 @@ export default function DemoPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 max-xs:grid-cols-1">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="videoControls"
@@ -319,7 +319,7 @@ export default function DemoPage() {
                       <Label htmlFor="videoAutoPlay">Auto Play</Label>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 max-xs:grid-cols-1">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="videoLoop"
@@ -341,7 +341,7 @@ export default function DemoPage() {
                       <Label htmlFor="videoMuted">Muted</Label>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 max-xs:grid-cols-1">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="videoDoubleClickFullscreen"
@@ -373,7 +373,7 @@ export default function DemoPage() {
                       </Label>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 max-xs:grid-cols-1">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="videoShowDownloadButton"
@@ -435,7 +435,7 @@ export default function DemoPage() {
                       className="mt-1"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4 max-xs:grid-cols-1">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <Label htmlFor="audioAccentColor">Accent Color</Label>
                       <div className="mt-1 flex gap-2">
@@ -494,7 +494,7 @@ export default function DemoPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 max-xs:grid-cols-1">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="audioControls"
@@ -516,7 +516,7 @@ export default function DemoPage() {
                       <Label htmlFor="audioAutoPlay">Auto Play</Label>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 max-xs:grid-cols-1">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="audioLoop"
@@ -538,7 +538,7 @@ export default function DemoPage() {
                       <Label htmlFor="audioMuted">Muted</Label>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 max-xs:grid-cols-1">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="audioShowDownloadButton"
