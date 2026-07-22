@@ -213,7 +213,6 @@ const VideoPlayer = ({
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const timelineInputRef = useRef<HTMLInputElement>(null);
   const volumeInputRef = useRef<HTMLInputElement>(null);
-  const [showTooltip, setShowTooltip] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [hoverPosition, setHoverPosition] = useState<number | null>(null);
@@ -288,8 +287,9 @@ const VideoPlayer = ({
     }
   }, [muted, defaultVolume]);
 
+  const defaultPlaybackRateAppliedRef = useRef(false);
   useEffect(() => {
-    if (videoRef.current && defaultPlaybackRate && duration) {
+    if (videoRef.current && typeof defaultPlaybackRate === "number" && !defaultPlaybackRateAppliedRef.current) {
       const newPlaybackRate = Math.min(
         Math.max(defaultPlaybackRate || 1, 0.0625),
         16,
@@ -297,14 +297,22 @@ const VideoPlayer = ({
       setPlaybackRate(newPlaybackRate);
       videoRef.current.playbackRate = newPlaybackRate;
       if (onPlaybackRateChange) onPlaybackRateChange(newPlaybackRate);
+      defaultPlaybackRateAppliedRef.current = true;
     }
-  }, [defaultPlaybackRate, onPlaybackRateChange, duration]);
+  }, [defaultPlaybackRate, onPlaybackRateChange]);
 
+  const lastSeekToRef = useRef<number | undefined>(undefined);
   useEffect(() => {
     const videoElement = videoRef.current;
-    if (seekTo && videoElement && duration) {
+    if (
+      typeof seekTo === "number" &&
+      seekTo !== lastSeekToRef.current &&
+      videoElement &&
+      duration
+    ) {
       videoElement.currentTime = seekTo;
       updateRangeBackground(timelineInputRef.current, seekTo, duration);
+      lastSeekToRef.current = seekTo;
     }
   }, [seekTo, duration]);
 
@@ -326,6 +334,10 @@ const VideoPlayer = ({
         try {
           const videoElementClone =
             videoRef.current.cloneNode() as HTMLVideoElement;
+          const mediaSrc = src || (sources && sources[0]?.src);
+          if (mediaSrc) {
+            videoElementClone.src = mediaSrc;
+          }
           videoElementClone.crossOrigin = "anonymous";
           await new Promise(
             (resolve) => (videoElementClone.onloadedmetadata = resolve),
@@ -334,7 +346,7 @@ const VideoPlayer = ({
           const canvas = document.createElement("canvas");
           canvas.width = videoElementClone.videoWidth || 640;
           canvas.height = videoElementClone.videoHeight || 360;
-          const time = generatePosterAt || duration / 2;
+          const time = generatePosterAt || 0;
           const ctx = canvas.getContext("2d");
 
           if (ctx) {
@@ -351,7 +363,6 @@ const VideoPlayer = ({
                 canvas.height,
               );
               const dataUrl = canvas.toDataURL();
-              console.log(dataUrl);
 
               if (videoRef.current) videoRef.current.poster = dataUrl;
             } catch (err) {
@@ -366,7 +377,7 @@ const VideoPlayer = ({
         }
       }
     })();
-  }, [duration, poster, generatePosterAt, src]);
+  }, [duration, poster, generatePosterAt, src, sources]);
 
   useEffect(() => {
     return () => {
@@ -506,11 +517,6 @@ const VideoPlayer = ({
     const videoElement = videoRef.current;
     const handleTimeUpdate = () => {
       if (videoElement) {
-        setCurrentTime(videoElement.currentTime);
-        if (onProgress) {
-          onProgress(videoElement.currentTime, videoElement.duration);
-        }
-
         // Playlist-aware aggregated time and auto-advance logic
         if (
           playlistConfig &&
@@ -611,7 +617,11 @@ const VideoPlayer = ({
           return;
         }
 
-        // Non-playlist fallback: preserve existing behavior
+        // Non-playlist fallback
+        setCurrentTime(videoElement.currentTime);
+        if (onProgress) {
+          onProgress(videoElement.currentTime, videoElement.duration);
+        }
         if (videoElement.currentTime === videoElement.duration) {
           setIsPlaying(false);
           if (onEnded) {
@@ -1000,6 +1010,14 @@ const VideoPlayer = ({
             if (cancelled) break;
             const trackBlobUrl = await fetchSubtitleBlobUrl(track.src);
             if (!trackBlobUrl) continue;
+            if (cancelled) {
+              try {
+                URL.revokeObjectURL(trackBlobUrl);
+              } catch {
+                /* ignore */
+              }
+              break;
+            }
             blobUrls.push(trackBlobUrl);
             const trackElement = document.createElement("track");
             trackElement.src = trackBlobUrl;
@@ -1301,14 +1319,6 @@ const VideoPlayer = ({
     togglePlay();
   };
 
-  const handleMouseEnter = () => {
-    setShowTooltip(true);
-  };
-
-  const handleMouseLeave = () => {
-    setShowTooltip(false);
-  };
-
   const handleTimelineMouseMove = async (
     e: React.MouseEvent<HTMLInputElement>,
   ) => {
@@ -1546,14 +1556,18 @@ const VideoPlayer = ({
       className={`video-player-wrapper ${className || ""} ${
         isFullscreen ? "fullscreen-container" : ""
       }`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
     >
       <div
         className={`control-relative ${isFullscreen ? "fullscreen-video" : ""}`}
       >
         <video
-          src={shouldLoadMedia ? src : undefined}
+          src={
+            shouldLoadMedia && !sources?.length
+              ? (playlistConfig?.items.length
+                  ? playlistConfig.items[currentPlaylistIndex]?.src
+                  : src)
+              : undefined
+          }
           ref={videoRef}
           {...(className && { className })}
           onClick={handleVideoClick}
@@ -1586,12 +1600,6 @@ const VideoPlayer = ({
               <source key={src} src={src} type={type} />
             ))}
         </video>
-        {showTooltip && !disableDoubleClick && (
-          <div className="show-tooltip">
-            Double click to{" "}
-            {doubleClickToFullscreen ? "fullscreen" : "play/pause"}
-          </div>
-        )}
 
         {isLoading && (
           <div className="loading-overlay">

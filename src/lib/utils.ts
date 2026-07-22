@@ -63,7 +63,7 @@ export const videoProps = [
     type: "number",
     default: "undefined",
     description:
-      "A number representing the time in seconds to generate a poster for the video. If not provided, a poster will be generated at half the video duration.",
+      "A number representing the time in seconds to generate a poster for the video. If not provided, a poster will be generated at the begining of the video.",
   },
   {
     prop: "preload",

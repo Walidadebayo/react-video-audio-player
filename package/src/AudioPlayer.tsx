@@ -158,10 +158,15 @@ const AudioPlayer = ({
     }
   }, [muted, defaultVolume, useWaveform]);
 
+  const defaultPlaybackRateAppliedRef = useRef(false);
   useEffect(() => {
     const timer = window.setTimeout(() => {
       if (!mountedRef.current) return;
-      if (defaultPlaybackRate && duration) {
+      if (
+        typeof defaultPlaybackRate === "number" &&
+        !defaultPlaybackRateAppliedRef.current &&
+        duration
+      ) {
         const newPlaybackRate = Math.min(
           Math.max(Number(defaultPlaybackRate) || 1, 0.0625),
           16,
@@ -177,6 +182,7 @@ const AudioPlayer = ({
           console.warn("Failed to set playback rate", err);
         }
         if (onPlaybackRateChange) onPlaybackRateChange(newPlaybackRate);
+        defaultPlaybackRateAppliedRef.current = true;
       }
     }, 500);
     return () => clearTimeout(timer);
@@ -381,11 +387,7 @@ const AudioPlayer = ({
           break;
         case " ":
           e.preventDefault();
-          if (useWaveform && waveSurfer.current) waveSurfer.current.playPause();
-          else if (audioElRef.current) {
-            if (audioElRef.current.paused) audioElRef.current.play();
-            else audioElRef.current.pause();
-          }
+          togglePlay();
           break;
         case "m":
         case "M":
@@ -438,15 +440,7 @@ const AudioPlayer = ({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [
-    isMuted,
-    volume,
-    playbackRate,
-    disableShortcuts,
-    toggleMute,
-    onPlaybackRateChange,
-    useWaveform,
-  ]);
+  }, [isMuted, volume, playbackRate, disableShortcuts, toggleMute, onPlaybackRateChange, useWaveform, togglePlay]);
 
   const reloadAudio = () => {
     setAudioError(false);
@@ -719,9 +713,20 @@ const AudioPlayer = ({
           console.warn("Error binding WaveSurfer events", err);
         }
 
-        if (seekTo && waveSurfer.current) {
+        if (typeof seekTo === "number" && waveSurfer.current) {
           try {
-            waveSurfer.current.seekTo(seekTo);
+            const wsAny = waveSurfer.current as unknown as {
+              setTime?: (t: number) => void;
+            };
+            if (typeof wsAny.setTime === "function") {
+              wsAny.setTime(seekTo);
+            } else {
+              const dur = waveSurfer.current.getDuration() || 0;
+              if (dur > 0)
+                waveSurfer.current.seekTo(
+                  Math.min(Math.max(0, seekTo / dur), 1),
+                );
+            }
           } catch {
             /* Ignore seek errors */
           }
@@ -731,6 +736,10 @@ const AudioPlayer = ({
 
     return () => {
       cancelled = true;
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
       const ws = waveSurfer.current;
       if (ws) {
         try {
@@ -1319,7 +1328,7 @@ const AudioPlayer = ({
                   <button
                     onClick={handleDownloadClick}
                     className="download-button accent-color"
-                    aria-label="Download video"
+                    aria-label="Download audio"
                   >
                     {!isDownloading
                       ? getIcon(
@@ -1370,7 +1379,7 @@ const AudioPlayer = ({
                 disabled={isDownloading}
                 onClick={handleDownloadClick}
                 className="download-button accent-color"
-                aria-label="Download video"
+                aria-label="Download audio"
               >
                 {!isDownloading
                   ? getIcon(
