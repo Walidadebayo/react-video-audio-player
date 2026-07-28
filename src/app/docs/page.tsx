@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Sparkles,
   SquarePlay,
+  Tv,
 } from "lucide-react";
 import {
   Table,
@@ -35,6 +36,12 @@ export const metadata: Metadata = {
 };
 
 const docsHighlights = [
+  {
+    icon: Tv,
+    title: "HLS Streaming & Quality",
+    description:
+      "Stream .m3u8 playlists and live feeds with automatic or manual adaptive quality selection.",
+  },
   {
     icon: PlayCircle,
     title: "Video player",
@@ -244,6 +251,25 @@ function App() {
 }`}
                     </CodeHighlighter>
                   </div>
+                  <div>
+                    <h3 className="text-2xl font-bold mb-2">
+                      HLS Video Streaming (.m3u8) & Quality Controls
+                    </h3>
+                    <CodeHighlighter>
+                      {`import { VideoPlayer } from 'react-video-audio-player';
+
+function StreamingApp() {
+  return (
+    <VideoPlayer
+      src="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+      quality="720p" // 'auto', '1080p', '720p', etc.
+      onQualityChange={(level, label) => console.log('Switched quality to:', label)}
+      controls
+    />
+  );
+}`}
+                    </CodeHighlighter>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -348,7 +374,7 @@ function App() {
                 <CardHeader>
                   <CardTitle className="text-3xl">Example Usage</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-6">
                   <CodeHighlighter>
                     {`import { AudioPlayer } from 'react-video-audio-player';
 
@@ -366,6 +392,25 @@ function App() {
   );
 }`}
                   </CodeHighlighter>
+                  <div>
+                    <h3 className="text-2xl font-bold mb-2">
+                      HLS Audio Streaming (.m3u8) & Bitrate Selector
+                    </h3>
+                    <CodeHighlighter>
+                      {`import { AudioPlayer } from 'react-video-audio-player';
+
+function AudioStreamApp() {
+  return (
+    <AudioPlayer
+      src="https://example.com/audio-stream.m3u8"
+      quality="auto"
+      onQualityChange={(level, label) => console.log('Audio bitrate:', label)}
+      controls
+    />
+  );
+}`}
+                    </CodeHighlighter>
+                  </div>
                 </CardContent>
               </Card>
 

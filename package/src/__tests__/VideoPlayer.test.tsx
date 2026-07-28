@@ -292,4 +292,29 @@ describe("VideoPlayer", () => {
     // Should advance to next item and not call onEnded
     expect(onEnded).not.toHaveBeenCalled();
   });
+
+  test("renders ambient mode canvas when ambientMode prop is true", () => {
+    const { container } = render(<VideoPlayer {...defaultProps} ambientMode />);
+    const canvas = container.querySelector(".ambient-glow-canvas");
+    expect(canvas).toBeInTheDocument();
+  });
+
+  test("renders timeline chapter markers when chapters prop is provided", async () => {
+    const chapters = [
+      { time: 0, label: "Intro" },
+      { time: 10, label: "Main Section" },
+    ];
+    const { container } = render(<VideoPlayer {...defaultProps} chapters={chapters} />);
+    const videoElement = container.querySelector("video") as HTMLVideoElement;
+    Object.defineProperty(videoElement, "duration", {
+      configurable: true,
+      value: 60,
+    });
+    await act(async () => {
+      fireEvent(videoElement, new Event("loadedmetadata"));
+      await Promise.resolve();
+    });
+    const markers = container.querySelectorAll(".chapter-marker");
+    expect(markers.length).toBeGreaterThan(0);
+  });
 });

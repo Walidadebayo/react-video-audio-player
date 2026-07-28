@@ -3,7 +3,7 @@ import { act, render } from "@testing-library/react";
 import { screen, fireEvent } from "@testing-library/dom";
 import AudioPlayer from "../AudioPlayer";
 
-const mockWaveSurferCreate = jest.fn(() => {
+const mockWaveSurferCreate = jest.fn((..._args: any[]) => {
   const handlers: Record<string, (...args: unknown[]) => void> = {};
   const mediaElement = document.createElement("audio");
   let playing = false;
@@ -73,9 +73,9 @@ const mockWaveSurferCreate = jest.fn(() => {
 jest.mock("wavesurfer.js", () => ({
   __esModule: true,
   default: {
-    create: (...args: unknown[]) => mockWaveSurferCreate(...args),
+    create: (options: any) => mockWaveSurferCreate(options),
   },
-  create: (...args: unknown[]) => mockWaveSurferCreate(...args),
+  create: (options: any) => mockWaveSurferCreate(options),
 }));
 
 // Mock matchMedia
@@ -160,5 +160,17 @@ describe("AudioPlayer", () => {
 
     expect(container.querySelector("audio")).toBeInTheDocument();
     expect(mockWaveSurferCreate).toHaveBeenCalled();
+  });
+
+  test("renders next and previous track buttons when playlist prop is provided", () => {
+    const playlist = {
+      items: [
+        { src: "audio1.mp3", duration: 60 },
+        { src: "audio2.mp3", duration: 90 },
+      ],
+    };
+    render(<AudioPlayer playlist={playlist} />);
+    expect(screen.getByRole("button", { name: /next track/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /previous track/i })).toBeInTheDocument();
   });
 });

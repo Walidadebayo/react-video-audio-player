@@ -14,7 +14,8 @@ export const formatTime = (seconds: number) => {
 export const updateRangeBackground = (
   ref: HTMLInputElement | null,
   defaultValue?: number,
-  maxVal?: number
+  maxVal?: number,
+  bufferVal?: number
 ) => {
   if (ref) {
     if (defaultValue || defaultValue === 0) {
@@ -25,10 +26,18 @@ export const updateRangeBackground = (
     } else if (!ref.max) {
       ref.max = "100";
     }
-    const value = (parseFloat(ref.value) / parseFloat(ref.max)) * 100;
+    const maxNumber = parseFloat(ref.max) || 100;
+    const value = (parseFloat(ref.value) / maxNumber) * 100;
     ref.style.setProperty("--value", `${value}%`);
+    if (typeof bufferVal === "number" && bufferVal >= 0) {
+      const bufferPercent = Math.min(100, Math.max(value, (bufferVal / maxNumber) * 100));
+      ref.style.setProperty("--buffer-value", `${bufferPercent}%`);
+    } else if (!ref.style.getPropertyValue("--buffer-value")) {
+      ref.style.setProperty("--buffer-value", `${value}%`);
+    }
   }
 };
+
 
 export const getYouTubeVideoId = (url: string) => {
   const regex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/s]{11})/i;

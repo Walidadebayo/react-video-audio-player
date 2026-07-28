@@ -8,11 +8,14 @@ import React, {
   CSSProperties,
 } from "react";
 import WaveSurfer, { WaveSurferOptions } from "wavesurfer.js";
+import Hls, { Level } from "hls.js";
 import { formatTime, playbackRateOptions } from "./lib/utils";
 import { updateRangeBackground } from "./lib/utils";
 import { useInView } from "./lib/useInView";
 import { loadAudioPeaks } from "./lib/peaks";
 import Select from "./components/Select";
+import Dropdown from "./components/Dropdown";
+import { Chapter, PlaylistConfig } from "./VideoPlayer";
 import "./video-audio-player.css";
 
 export type AudioControlOptionsToRemove =
@@ -22,6 +25,23 @@ export type AudioControlOptionsToRemove =
   | "playbackRate"
   | "current-time"
   | "duration";
+
+export type AudioMimeType =
+  | "audio/mpeg"
+  | "audio/wav"
+  | "audio/ogg"
+  | "audio/aac"
+  | "audio/flac"
+  | "audio/webm"
+  | "audio/mp4"
+  | "application/x-mpegURL"
+  | "application/vnd.apple.mpegurl"
+  | (string & {});
+
+export type AudioSource = {
+  src: string;
+  type?: AudioMimeType | string;
+};
 
 export interface AudioPlayerIcons {
   play?: React.ReactNode;
@@ -33,10 +53,12 @@ export interface AudioPlayerIcons {
   forward?: React.ReactNode;
   download?: React.ReactNode;
   error?: React.ReactNode;
+  nextTrack?: React.ReactNode;
+  prevTrack?: React.ReactNode;
 }
 
 export interface AudioPlayerProps {
-  src: string;
+  src?: string;
   accentColor?: string;
   customErrorMessage?: string;
   autoPlay?: boolean;
@@ -68,6 +90,18 @@ export interface AudioPlayerProps {
   onDuration?: (duration: number) => void;
   getWaveSurferRef?: (ref: WaveSurfer | null) => void;
   getAudioElement?: (ref: HTMLAudioElement | null) => void;
+  pauseWhenHidden?: boolean;
+  playlist?: PlaylistConfig;
+  chapters?: Chapter[];
+  quality?: number | string;
+  onQualityChange?: (level: number, label: string) => void;
+  onVisibilityChange?: (isVisible: boolean) => void;
+  onBuffering?: (isBuffering: boolean) => void;
+  waveColor?: string;
+  progressColor?: string;
+  barWidth?: number;
+  barGap?: number;
+  barRadius?: number;
   icons?: AudioPlayerIcons;
 }
 
@@ -104,6 +138,18 @@ const AudioPlayer = ({
   onDuration,
   getWaveSurferRef,
   getAudioElement,
+  pauseWhenHidden = false,
+  playlist: playlistConfig,
+  chapters,
+  quality,
+  onQualityChange,
+  onVisibilityChange,
+  onBuffering,
+  waveColor,
+  progressColor,
+  barWidth,
+  barGap,
+  barRadius,
   icons = {},
 }: AudioPlayerProps) => {
   const waveformRef = useRef<HTMLDivElement>(null);
@@ -126,12 +172,53 @@ const AudioPlayer = ({
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const audioContainerRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(audioContainerRef);
+  const [shouldLoadMedia, setShouldLoadMedia] = useState(false);
   const volumeInputRef = useRef<HTMLInputElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [reload, setReload] = useState(false);
   const [reverseCurrentTime, setReverseCurrentTime] = useState(false);
   const [useWaveform, setUseWaveform] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const pausedByScrollRef = useRef(false);
+  const hlsRef = useRef<Hls | null>(null);
+  const [availableQualities, setAvailableQualities] = useState<
+    Array<{ level: number; label: string }>
+  >([]);
+  const [currentQuality, setCurrentQuality] = useState<number>(-1);
+  const [currentPlaylistIndex, setCurrentPlaylistIndex] = useState(0);
+  const [speedToast, setSpeedToast] = useState<string | null>(null);
+  const speedToastTimerRef = useRef<number | null>(null);
+
+  const triggerSpeedToast = useCallback((rate: number) => {
+    setSpeedToast(`${rate}x`);
+    if (speedToastTimerRef.current) clearTimeout(speedToastTimerRef.current);
+    speedToastTimerRef.current = window.setTimeout(() => {
+      setSpeedToast(null);
+    }, 800);
+  }, []);
+
+  const handleSpeedChange = useCallback(
+    (newPlaybackRate: number) => {
+      setPlaybackRate(newPlaybackRate);
+      try {
+        if (useWaveform && waveSurfer.current) {
+          waveSurfer.current.setPlaybackRate(newPlaybackRate);
+        } else if (!useWaveform && audioElRef.current) {
+          audioElRef.current.playbackRate = newPlaybackRate;
+        }
+      } catch (err) {
+        console.warn("Failed to set playback rate", err);
+      }
+      triggerSpeedToast(newPlaybackRate);
+      if (onPlaybackRateChange) onPlaybackRateChange(newPlaybackRate);
+    },
+    [useWaveform, onPlaybackRateChange, triggerSpeedToast],
+  );
+
+  const activeSrc =
+    (playlistConfig?.items?.length
+      ? playlistConfig.items[currentPlaylistIndex]?.src
+      : src) || "";
 
   const getIcon = (
     iconName: keyof AudioPlayerIcons,
@@ -194,6 +281,138 @@ const AudioPlayer = ({
     };
   }, []);
 
+  const [isTabVisible, setIsTabVisible] = useState(() =>
+    typeof document !== "undefined" ? !document.hidden : true
+  );
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsTabVisible(!document.hidden);
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  const isEffectiveVisible = isInView && isTabVisible;
+
+  useEffect(() => {
+    if (isEffectiveVisible) {
+      setShouldLoadMedia(true);
+      if (pauseWhenHidden && pausedByScrollRef.current) {
+        pausedByScrollRef.current = false;
+        try {
+          if (useWaveform && waveSurfer.current) {
+            waveSurfer.current.play();
+          } else if (audioElRef.current) {
+            audioElRef.current.play();
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+    } else if (pauseWhenHidden) {
+      const isPlayingNow = useWaveform
+        ? (waveSurfer.current?.isPlaying() ?? false)
+        : (audioElRef.current ? !audioElRef.current.paused : false);
+      if (isPlayingNow) {
+        pausedByScrollRef.current = true;
+        try {
+          if (useWaveform && waveSurfer.current) {
+            waveSurfer.current.pause();
+          } else if (audioElRef.current) {
+            audioElRef.current.pause();
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    if (onVisibilityChange) {
+      onVisibilityChange(isEffectiveVisible);
+    }
+  }, [isEffectiveVisible, pauseWhenHidden, useWaveform, onVisibilityChange]);
+
+  // Audio HLS Streaming Effect
+  useEffect(() => {
+    const audioEl = audioElRef.current;
+    if (!audioEl || !activeSrc || !shouldLoadMedia) return;
+
+    const isHls = activeSrc.includes(".m3u8");
+    if (!isHls) return;
+
+    // 1. HLS.js support (MSE-capable browsers)
+    if (Hls && Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(activeSrc);
+      hls.attachMedia(audioEl);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+        const levels = data.levels.map((lvl: Level, index: number) => ({
+          level: index,
+          label: lvl.bitrate
+            ? `${Math.round(lvl.bitrate / 1000)}k`
+            : `Q${index + 1}`,
+        }));
+        setAvailableQualities([{ level: -1, label: "Auto" }, ...levels]);
+      });
+
+      hls.on(Hls.Events.FRAG_BUFFERED, () => {
+        setIsLoading(false);
+        if (onBuffering) onBuffering(false);
+      });
+
+      hls.on(Hls.Events.LEVEL_SWITCHED, () => {
+        setIsLoading(false);
+        if (onBuffering) onBuffering(false);
+      });
+
+      hlsRef.current = hls;
+    } else if (audioEl.canPlayType("application/vnd.apple.mpegurl")) {
+      // 2. Native Safari iOS fallback
+      audioEl.src = activeSrc;
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [activeSrc, shouldLoadMedia, onBuffering]);
+
+  const handleQualityChange = useCallback(
+    (level: number) => {
+      setCurrentQuality(level);
+      if (hlsRef.current) {
+        hlsRef.current.currentLevel = level;
+        hlsRef.current.nextLevel = level;
+      }
+      setIsLoading(false);
+      if (onBuffering) onBuffering(false);
+      const found = availableQualities.find((q) => q.level === level);
+      if (onQualityChange) {
+        onQualityChange(level, found?.label || "Auto");
+      }
+    },
+    [availableQualities, onQualityChange, onBuffering],
+  );
+
+  useEffect(() => {
+    if (quality !== undefined && availableQualities.length > 0) {
+      const match = availableQualities.find(
+        (q) =>
+          q.label.toLowerCase() === String(quality).toLowerCase() ||
+          q.level === Number(quality),
+      );
+      if (match) {
+        handleQualityChange(match.level);
+      }
+    }
+  }, [quality, availableQualities, handleQualityChange]);
+
+
   useEffect(() => {
     const volumeInput = volumeInputRef.current;
     updateRangeBackground(volumeInput);
@@ -247,7 +466,7 @@ const AudioPlayer = ({
 
   useEffect(() => {
     setUseWaveform(true);
-  }, [src]);
+  }, [activeSrc]);
 
   const togglePlay = useCallback(() => {
     setIsPlaying((p) => {
@@ -472,6 +691,8 @@ const AudioPlayer = ({
 
     const handlePlay = () => {
       setIsPlaying(true);
+      setIsLoading(false);
+      if (onBuffering) onBuffering(false);
       if (onPlay) {
         onPlay();
       }
@@ -488,6 +709,13 @@ const AudioPlayer = ({
       setIsPlaying(false);
       setCurrentTime(0);
       waveSurfer.current?.stop();
+      if (playlistConfig?.items?.length) {
+        if (currentPlaylistIndex < playlistConfig.items.length - 1) {
+          setCurrentPlaylistIndex((prev) => prev + 1);
+        } else if (playlistConfig.loop) {
+          setCurrentPlaylistIndex(0);
+        }
+      }
       if (onEnded) {
         onEnded();
       }
@@ -495,6 +723,7 @@ const AudioPlayer = ({
 
     const handleReady = () => {
       setIsLoading(false);
+      if (onBuffering) onBuffering(false);
       const duration = waveSurfer.current?.getDuration() || 0;
       setDuration(duration);
       if (onReady) {
@@ -538,7 +767,7 @@ const AudioPlayer = ({
       waveSurfer.current = null;
     }
 
-    if (!isInView) {
+    if (!shouldLoadMedia) {
       return;
     }
 
@@ -555,7 +784,7 @@ const AudioPlayer = ({
           const probe = document.createElement("audio");
           probe.crossOrigin = "anonymous";
           probe.preload = "metadata";
-          probe.src = src;
+          probe.src = activeSrc;
           const probeTimeoutMs = 15000;
           await new Promise<void>((resolve) => {
             let settled = false;
@@ -608,21 +837,21 @@ const AudioPlayer = ({
             Math.min(Math.round((container.clientWidth || 0) * 2), 4096),
             1024,
           );
-          peaks = await loadAudioPeaks(src, peakCount);
+          peaks = await loadAudioPeaks(activeSrc, peakCount);
         }
 
         const wsOptions: WaveSurferOptions = {
-          container: container,
-          waveColor: "#9ca3af",
-          progressColor: accentColor,
-          cursorColor: "#000000",
-          height: 50,
-          url: src,
-          dragToSeek: true,
+          container,
+          url: activeSrc,
+          height: 48,
+          waveColor: waveColor || "#94a3b8",
+          progressColor: progressColor || accentColor,
+          cursorColor: "#ffffff",
           cursorWidth: 2,
           normalize: !isLong,
-          barWidth: isLong ? 3 : 2,
-          barGap: isLong ? 2 : 1,
+          barWidth: barWidth !== undefined ? barWidth : isLong ? 3 : 2,
+          barGap: barGap !== undefined ? barGap : isLong ? 2 : 1,
+          ...(barRadius !== undefined ? { barRadius } : {}),
         };
         if (peaks?.length) {
           wsOptions.peaks = [Float32Array.from(peaks)];
@@ -784,6 +1013,9 @@ const AudioPlayer = ({
     };
   }, [
     src,
+    activeSrc,
+    currentPlaylistIndex,
+    playlistConfig,
     accentColor,
     loop,
     autoPlay,
@@ -802,32 +1034,75 @@ const AudioPlayer = ({
     reload,
     onVolumeChange,
     useWaveform,
-    isInView,
+    shouldLoadMedia,
+    onBuffering,
+    waveColor,
+    progressColor,
+    barWidth,
+    barGap,
+    barRadius
   ]);
-
-  const handleSpeedChange = (speed: number) => {
-    setPlaybackRate(speed);
-    if (useWaveform && waveSurfer.current) {
-      try {
-        waveSurfer.current.setPlaybackRate(speed);
-      } catch {
-        /* ignore */
-      }
-    } else if (audioElRef.current) {
-      try {
-        audioElRef.current.playbackRate = speed;
-      } catch {
-        /* ignore */
-      }
-    }
-    if (onPlaybackRateChange) onPlaybackRateChange(speed);
-  };
 
   useEffect(() => {
     if (getWaveSurferRef && waveSurfer.current) {
       getWaveSurferRef(waveSurfer.current);
     }
   }, [getWaveSurferRef, waveSurfer, useWaveform]);
+
+  // Media Session API
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.mediaSession) return;
+    const getMedia = () =>
+      useWaveform && waveSurfer.current
+        ? (waveSurfer.current.getMediaElement?.() ?? audioElRef.current)
+        : audioElRef.current;
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: src || "Audio",
+      });
+      navigator.mediaSession.setActionHandler("play", () => {
+        try {
+          if (useWaveform && waveSurfer.current) waveSurfer.current.play();
+          else getMedia()?.play();
+        } catch { /* ignore */ }
+      });
+      navigator.mediaSession.setActionHandler("pause", () => {
+        try {
+          if (useWaveform && waveSurfer.current) waveSurfer.current.pause();
+          else getMedia()?.pause();
+        } catch { /* ignore */ }
+      });
+      navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+        try {
+          const media = getMedia();
+          if (media) media.currentTime = Math.max(0, media.currentTime - (details.seekOffset ?? 10));
+        } catch { /* ignore */ }
+      });
+      navigator.mediaSession.setActionHandler("seekforward", (details) => {
+        try {
+          const media = getMedia();
+          if (media) media.currentTime = Math.min(media.duration || 0, media.currentTime + (details.seekOffset ?? 10));
+        } catch { /* ignore */ }
+      });
+      navigator.mediaSession.setActionHandler("seekto", (details) => {
+        try {
+          const media = getMedia();
+          if (media && details.seekTime != null) media.currentTime = details.seekTime;
+        } catch { /* ignore */ }
+      });
+    } catch {
+      /* Media Session not supported */
+    }
+    return () => {
+      try {
+        if (typeof navigator !== "undefined" && navigator.mediaSession) {
+          (["play", "pause", "seekbackward", "seekforward", "seekto"] as MediaSessionAction[]).forEach(
+            (a) => { try { navigator.mediaSession.setActionHandler(a, null); } catch { /* ignore */ } }
+          );
+        }
+      } catch { /* ignore */ }
+    };
+  }, [src, useWaveform]);
 
   useEffect(() => {
     if (getAudioElement) {
@@ -926,6 +1201,18 @@ const AudioPlayer = ({
         if (onSeeked) onSeeked(audio.currentTime || 0);
       };
 
+      const audio_onWaiting = () => {
+        if (audio.readyState < 3) {
+          setIsLoading(true);
+          if (onBuffering) onBuffering(true);
+        }
+      };
+
+      const audio_onReadyToPlay = () => {
+        setIsLoading(false);
+        if (onBuffering) onBuffering(false);
+      };
+
       audio.addEventListener("loadedmetadata", audio_onLoadedMetadata);
       audio.addEventListener("timeupdate", audio_onTimeUpdate);
       audio.addEventListener("play", audio_onPlay);
@@ -934,6 +1221,11 @@ const AudioPlayer = ({
       audio.addEventListener("error", audio_onError);
       audio.addEventListener("volumechange", audio_onVolumeChange);
       audio.addEventListener("seeking", audio_onSeeking);
+      audio.addEventListener("waiting", audio_onWaiting);
+      audio.addEventListener("playing", audio_onReadyToPlay);
+      audio.addEventListener("canplay", audio_onReadyToPlay);
+      audio.addEventListener("canplaythrough", audio_onReadyToPlay);
+      audio.addEventListener("ratechange", audio_onReadyToPlay);
 
       return () => {
         try {
@@ -945,6 +1237,11 @@ const AudioPlayer = ({
           audio.removeEventListener("error", audio_onError);
           audio.removeEventListener("volumechange", audio_onVolumeChange);
           audio.removeEventListener("seeking", audio_onSeeking);
+          audio.removeEventListener("waiting", audio_onWaiting);
+          audio.removeEventListener("playing", audio_onReadyToPlay);
+          audio.removeEventListener("canplay", audio_onReadyToPlay);
+          audio.removeEventListener("canplaythrough", audio_onReadyToPlay);
+          audio.removeEventListener("ratechange", audio_onReadyToPlay);
         } catch {
           /* ignore */
         }
@@ -966,6 +1263,7 @@ const AudioPlayer = ({
     onDuration,
     onVolumeChange,
     onMuteChange,
+    onBuffering,
   ]);
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -979,12 +1277,12 @@ const AudioPlayer = ({
       if (onDownloadStart) onDownloadStart();
       setIsDownloading(true);
       const link = document.createElement("a");
-      const response = await fetch(src);
+      const response = await fetch(activeSrc);
       if (!response.ok) throw new Error("Download failed");
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
       link.href = objectUrl;
-      const maybeExt = src ? src.split(".").pop() : null;
+      const maybeExt = activeSrc ? activeSrc.split(".").pop() : null;
       const ext = maybeExt || "mp3";
       link.download = `${Math.random().toString(36).substring(2, 9)}.${ext}`;
       link.click();
@@ -1006,8 +1304,10 @@ const AudioPlayer = ({
 
   return (
     <div
-      className={`audio-player-wrapper  ${className}`}
+      className={`audio-player-wrapper ${className}`}
       ref={audioContainerRef}
+      role="region"
+      aria-label="Audio Player"
       style={
         {
           ...style,
@@ -1017,6 +1317,10 @@ const AudioPlayer = ({
         } as CSSProperties
       }
     >
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {isPlaying ? "Audio playing" : "Audio paused"}
+      </div>
+      {speedToast && <div className="speed-toast-overlay">{speedToast}</div>}
       {audioError ? (
         <div className="error-message">
           {getIcon(
@@ -1092,46 +1396,90 @@ const AudioPlayer = ({
           {controls && (
             <>
               {!controlsToExclude.includes("playPause") && (
-                <button
-                  onClick={togglePlay}
-                  className="accent-color-hover play-pause-button"
-                  aria-label={isPlaying ? "Pause" : "Play"}
-                >
-                  {!isPlaying
-                    ? getIcon(
-                        "play",
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <polygon points="6 3 20 12 6 21 6 3" />
-                        </svg>,
-                      )
-                    : getIcon(
-                        "pause",
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <rect x="14" y="4" width="4" height="16" rx="1" />
-                          <rect x="6" y="4" width="4" height="16" rx="1" />
+                <>
+                  {playlistConfig && playlistConfig.items.length > 1 && (
+                    <button
+                      onClick={() => {
+                        if (currentPlaylistIndex > 0) {
+                          setCurrentPlaylistIndex((prev) => prev - 1);
+                        } else if (playlistConfig.loop) {
+                          setCurrentPlaylistIndex(playlistConfig.items.length - 1);
+                        }
+                      }}
+                      className="accent-color-hover play-pause-button"
+                      aria-label="Previous Track"
+                      title="Previous Track"
+                    >
+                      {getIcon(
+                        "prevTrack",
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
                         </svg>,
                       )}
-                </button>
+                    </button>
+                  )}
+                  <button
+                    onClick={togglePlay}
+                    className="accent-color-hover play-pause-button"
+                    aria-label={isPlaying ? "Pause" : "Play"}
+                  >
+                    {!isPlaying
+                      ? getIcon(
+                          "play",
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polygon points="6 3 20 12 6 21 6 3" />
+                          </svg>,
+                        )
+                      : getIcon(
+                          "pause",
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect x="14" y="4" width="4" height="16" rx="1" />
+                            <rect x="6" y="4" width="4" height="16" rx="1" />
+                          </svg>,
+                        )}
+                  </button>
+                  {playlistConfig && playlistConfig.items.length > 1 && (
+                    <button
+                      onClick={() => {
+                        if (currentPlaylistIndex < playlistConfig.items.length - 1) {
+                          setCurrentPlaylistIndex((prev) => prev + 1);
+                        } else if (playlistConfig.loop) {
+                          setCurrentPlaylistIndex(0);
+                        }
+                      }}
+                      className="accent-color-hover play-pause-button"
+                      aria-label="Next Track"
+                      title="Next Track"
+                    >
+                      {getIcon(
+                        "nextTrack",
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                        </svg>,
+                      )}
+                    </button>
+                  )}
+                </>
               )}
               <button
                 className="current-time-duration accent-color-hover"
@@ -1198,8 +1546,8 @@ const AudioPlayer = ({
           ) : (
             <div
               ref={waveformRef}
-              className="waveform"
-              style={{ width: "100%", height: "100%", cursor: "pointer" }}
+              className="waveform relative"
+              style={{ width: "100%", height: "100%", cursor: "pointer", position: "relative" }}
               aria-label="Audio waveform"
             >
               {isLoading && (
@@ -1209,9 +1557,25 @@ const AudioPlayer = ({
                   </div>
                 </div>
               )}
+              {chapters && chapters.length > 0 && duration > 0 && (
+                <div className="chapter-markers-container">
+                  {chapters.map((ch, idx) => {
+                    const pos = (ch.time / duration) * 100;
+                    if (pos <= 0 || pos >= 100) return null;
+                    return (
+                      <div
+                        key={idx}
+                        className="chapter-marker"
+                        style={{ left: `${pos}%` }}
+                        title={`${ch.label} (${formatTime(ch.time)})`}
+                      />
+                    );
+                  })}
+                </div>
+              )}
               <audio
                 ref={audioElRef}
-                src={src}
+                src={activeSrc}
                 preload={isInView ? "metadata" : "none"}
                 autoPlay={autoPlay}
                 muted={muted}
@@ -1258,6 +1622,29 @@ const AudioPlayer = ({
                       handleSpeedChange(newPlaybackRate);
                     }}
                     key={playbackRate}
+                  />
+                </div>
+              )}
+              {availableQualities.length > 0 && (
+                <div
+                  className={`control-relative ${
+                    containerWidth < 260
+                      ? "hide-control"
+                      : "show-control-inline-flex"
+                  }`}
+                >
+                  <Dropdown
+                    items={availableQualities.map((q) => ({
+                      label: q.label,
+                      onClick: () => handleQualityChange(q.level),
+                    }))}
+                    tickSelected
+                    ariaLabel="Quality"
+                    buttonLabel={
+                      <span className="quality-badge">
+                        {availableQualities.find((q) => q.level === currentQuality)?.label || "Auto"}
+                      </span>
+                    }
                   />
                 </div>
               )}
@@ -1313,7 +1700,7 @@ const AudioPlayer = ({
                   type="range"
                   min="0"
                   max="1"
-                  step="any"
+                  step="0.01"
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
                   ref={volumeInputRef}
@@ -1321,6 +1708,9 @@ const AudioPlayer = ({
                     containerWidth < 400 ? "hide-control" : "show-control"
                   }`}
                   aria-label="Volume control"
+                  aria-valuenow={isMuted ? 0 : volume}
+                  aria-valuemin={0}
+                  aria-valuemax={1}
                 />
               )}
               {showDownloadButton && (

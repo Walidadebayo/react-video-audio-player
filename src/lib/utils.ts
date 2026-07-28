@@ -45,6 +45,20 @@ export const videoProps = [
     description: "The accent color to use for the player controls",
   },
   {
+    prop: "mediaSession",
+    type: "—",
+    default: "auto",
+    description:
+      "<b>Built-in (no prop needed).</b> The player automatically registers with the browser's Media Session API so OS-level controls work out of the box, keyboard media keys, lock screen controls on iOS/Android, and Bluetooth headset buttons all map to play, pause, seek-backward, seek-forward, and seek-to actions.",
+  },
+  {
+    prop: "bufferedDisplay",
+    type: "—",
+    default: "auto",
+    description:
+      "<b>Built-in (no prop needed).</b> A semi-transparent bar overlaid on the progress track shows how much of the video has been buffered, updating in real time as the browser downloads ahead.",
+  },
+  {
     prop: "tracks",
     type: "Array<{ src: string; kind: string; label: string; srclang: string; default?: boolean }>",
     default: "[]",
@@ -110,6 +124,27 @@ export const videoProps = [
       "Optional guard in seconds. If set, autoplay is blocked for videos longer than this duration.",
   },
   {
+    prop: "pauseWhenHidden",
+    type: "boolean",
+    default: "false",
+    description:
+      "If <b>true</b>, the video automatically pauses when the player scrolls out of the viewport or the browser tab is hidden, and resumes when it comes back. Only pauses triggered by visibility changes are reversed, manual pauses are preserved.",
+  },
+  {
+    prop: "quality",
+    type: "number | string",
+    default: '"auto"',
+    description:
+      "For HLS (.m3u8) streams. Sets or controls the quality level index (e.g. 0 for lowest, or -1 for Auto adaptive quality).",
+  },
+  {
+    prop: "onQualityChange",
+    type: "(level: number, label: string) => void",
+    default: "undefined",
+    description:
+      "Callback function fired when the user or stream switches HLS quality level.",
+  },
+  {
     prop: "muted",
     type: "boolean",
     default: "false",
@@ -172,6 +207,13 @@ export const videoProps = [
       "A number representing the time in seconds to seek to in the video when it has loaded",
   },
   {
+    prop: "chapters",
+    type: "Chapter[]",
+    default: "undefined",
+    description:
+      "Array of chapter markers (e.g. <code>[{ time: 0, label: 'Intro' }, { time: 120, label: 'Main Topic' }]</code>) rendered visually on the progress bar and displayed in hover tooltips.",
+  },
+  {
     prop: "controlsToExclude",
     type: "Array<typeof VideoControlOptionsToRemove>",
     default: "[]",
@@ -231,6 +273,12 @@ export const videoProps = [
     type: "string",
     default: '"An error occurred while trying to play the video."',
     description: "Custom error message to display when video fails to load",
+  },
+  {
+    prop: "ambientMode",
+    type: "boolean",
+    default: "false",
+    description: "If true, projects a YouTube-style dynamic, color-matched ambient glow behind the video player container",
   },
   {
     prop: "disableDoubleClick",
@@ -362,10 +410,22 @@ export const videoProps = [
 `,
   },
   {
+    prop: "onVisibilityChange",
+    type: "(isVisible: boolean) => void",
+    default: "undefined",
+    description: "Callback fired when player enters/leaves viewport or tab visibility changes",
+  },
+  {
+    prop: "onBuffering",
+    type: "(isBuffering: boolean) => void",
+    default: "undefined",
+    description: "Callback fired when media enters or exits buffering state",
+  },
+  {
     prop: "icons",
     type: "VideoPlayerIcons",
     default: "undefined",
-    description: "Custom icons to override the default icons. Available keys: <b>play, pause, mute, unmute, volume, fullscreen, exitFullscreen, pictureInPicture, exitPictureInPicture, rewind, forward, download, error, captions, settings</b>.",
+    description: "Custom icons to override the default icons. Available keys: <b>play, pause, mute, unmute, volume, fullscreen, exitFullscreen, pictureInPicture, exitPictureInPicture, rewind, forward, download, error, captions, settings, nextTrack, prevTrack</b>.",
   },
 ];
 
@@ -381,6 +441,13 @@ export const audioProps = [
     type: "string",
     default: '"#60a5fa"',
     description: "The accent color to use for the player controls",
+  },
+  {
+    prop: "mediaSession",
+    type: "—",
+    default: "auto",
+    description:
+      "<b>Built-in (no prop needed).</b> The player automatically registers with the browser's Media Session API so OS-level controls work out of the box — keyboard media keys, lock screen controls on iOS/Android, and Bluetooth headset buttons all map to play, pause, seek-backward, seek-forward, and seek-to actions.",
   },
   {
     prop: "customErrorMessage",
@@ -416,6 +483,41 @@ export const audioProps = [
     default: "undefined",
     description:
       "Optional guard in seconds. If set, autoplay is blocked for audio longer than this duration.",
+  },
+  {
+    prop: "pauseWhenHidden",
+    type: "boolean",
+    default: "false",
+    description:
+      "If <b>true</b>, the audio automatically pauses when the player scrolls out of the viewport or the browser tab is hidden, and resumes when it comes back. Only pauses triggered by visibility changes are reversed, manual pauses are preserved.",
+  },
+  {
+    prop: "quality",
+    type: "number | string",
+    default: '"auto"',
+    description:
+      "For HLS audio streams (.m3u8). Controls the audio bitrate quality level.",
+  },
+  {
+    prop: "playlist",
+    type: "PlaylistConfig",
+    default: "undefined",
+    description:
+      "Configures an audio playlist with multiple track items, auto-advance, and previous/next track controls.",
+  },
+  {
+    prop: "chapters",
+    type: "Chapter[]",
+    default: "undefined",
+    description:
+      "Array of chapter markers (e.g. <code>[{ time: 0, label: 'Intro' }]</code>) rendered visually on the progress bar and displayed in hover tooltips.",
+  },
+  {
+    prop: "onQualityChange",
+    type: "(level: number, label: string) => void",
+    default: "undefined",
+    description:
+      "Callback function fired when the user or audio stream switches quality/bitrate level.",
   },
   {
     prop: "muted",
@@ -581,9 +683,51 @@ export const audioProps = [
      <a href='https://wavesurfer.xyz/docs/classes/wavesurfer.default' class="underline" target='_blank' rel='noopener noreferrer'>WaveSurfer Methods</a>.`,
   },
   {
+    prop: "onVisibilityChange",
+    type: "(isVisible: boolean) => void",
+    default: "undefined",
+    description: "Callback fired when player enters/leaves viewport or tab visibility changes",
+  },
+  {
+    prop: "onBuffering",
+    type: "(isBuffering: boolean) => void",
+    default: "undefined",
+    description: "Callback fired when media enters or exits buffering state",
+  },
+  {
+    prop: "waveColor",
+    type: "string",
+    default: '"#94a3b8"',
+    description: "Custom unplayed waveform color for WaveSurfer visualization",
+  },
+  {
+    prop: "progressColor",
+    type: "string",
+    default: "accentColor",
+    description: "Custom played waveform progress color",
+  },
+  {
+    prop: "barWidth",
+    type: "number",
+    default: "2",
+    description: "Width of individual waveform bars in pixels",
+  },
+  {
+    prop: "barGap",
+    type: "number",
+    default: "1",
+    description: "Spacing gap between waveform bars in pixels",
+  },
+  {
+    prop: "barRadius",
+    type: "number",
+    default: "0",
+    description: "Border radius for waveform bars in pixels",
+  },
+  {
     prop: "icons",
     type: "AudioPlayerIcons",
     default: "undefined",
-    description: "Custom icons to override the default icons. Available keys: <b>play, pause, mute, unmute, volume, rewind, forward, download, error</b>.",
+    description: "Custom icons to override the default icons. Available keys: <b>play, pause, mute, unmute, volume, rewind, forward, download, error, nextTrack, prevTrack</b>.",
   },
 ];

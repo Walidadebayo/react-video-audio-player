@@ -26,8 +26,10 @@
     to right,
     var(--accent-color) 0%,
     var(--accent-color) var(--value, 0%),
-    #94a3b8 var(--value, 0%),
-    #94a3b8 100%
+    rgba(255, 255, 255, 0.45) var(--value, 0%),
+    rgba(255, 255, 255, 0.45) var(--buffer-value, var(--value, 0%)),
+    #64748b var(--buffer-value, var(--value, 0%)),
+    #64748b 100%
   ) !important;
   outline: none !important;
   transition: background 0.2s !important;
@@ -197,6 +199,35 @@
   @apply cursor-pointer w-full relative;
 }
 
+.timeline-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.chapter-markers-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.chapter-marker {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 8px;
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 1px;
+  z-index: 2;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+
 .video-player-wrapper .all-controls-bottom {
   @apply flex items-center justify-between;
 }
@@ -211,6 +242,14 @@
 
 .video-player-wrapper .all-controls-bottom .current-time-duration {
   @apply text-white text-xs inline-flex gap-1 items-center px-2 py-1 rounded;
+}
+
+.video-player-wrapper .quality-badge {
+  @apply text-xs font-bold px-1.5 py-0.5 border border-white/40 rounded;
+}
+
+.audio-player-wrapper .quality-badge {
+  @apply text-xs font-bold px-1.5 py-0.5 border border-gray-400 dark:border-gray-600 rounded text-gray-700 dark:text-gray-200;
 }
 
 .video-player-wrapper .download-button-wrapper {
@@ -230,7 +269,9 @@
 }
 
 .waveform {
-  min-height: 50px;
+  height: 48px;
+  max-height: 48px;
+  overflow: hidden;
 }
 
 .audio-player-wrapper .play-pause-button {
@@ -347,7 +388,7 @@
 }
 
 .timeline-tooltip {
-  @apply absolute text-white text-xs px-2 py-1 rounded whitespace-nowrap pointer-events-none -top-4 -left-1/2 -translate-x-1/2 after:absolute after:-bottom-2 after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-l-transparent after:border-r-transparent after:border-b-transparent after:border-[var(--accent-color)];
+  @apply absolute text-white text-xs px-2 py-1 rounded whitespace-nowrap pointer-events-none -top-6 -left-1/2 -translate-x-1/2 after:absolute after:-bottom-2 after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-l-transparent after:border-r-transparent after:border-b-transparent after:border-[var(--accent-color)];
 }
 
 .timeline-tooltip-thumbnail {
@@ -356,4 +397,81 @@
 
 .color-white {
   @apply text-white;
+}
+
+.speed-toast-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  pointer-events: none;
+  z-index: 60;
+  backdrop-filter: blur(4px);
+  animation: speedToastPop 0.8s ease-in-out forwards;
+}
+
+@keyframes speedToastPop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+}
+
+.video-player-wrapper {
+  position: relative;
+}
+
+.video-player-wrapper .control-relative {
+  position: relative;
+  z-index: 10;
+}
+
+.ambient-glow-wrapper {
+  position: absolute;
+  inset: -30px;
+  z-index: -1;
+  pointer-events: none;
+  overflow: visible;
+  border-radius: inherit;
+}
+
+.ambient-glow-canvas {
+  width: 100%;
+  height: 100%;
+  filter: blur(50px) brightness(1.25) saturate(1.5);
+  opacity: 0.85;
+  transform: scale(1.1);
+  transition: opacity 0.4s ease;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }

@@ -41,15 +41,29 @@ React Video Audio Player is a lightweight, customisable **React video player** a
 
 ✅ Full support for **video and audio**  
 ✅ Custom controls and styling  
+✅ **Chapter Markers**: Visual ticks on timeline progress bar with active chapter titles in hover tooltips  
+✅ **Audio Playlist**: Multi-track audio support with auto-advance and next/prev controls  
+✅ **HLS Streaming (`.m3u8`)**: Adaptive bitrate streaming & live streams for video and audio  
+✅ **Quality Selector**: Switch between Auto, 1080p, 720p, 480p, 360p, or audio bitrates  
 ✅ Audio Player uses **WaveSurfer** for audio visualisation  
-✅ Audio Player works with **MP3, WAV, M4A, MP4, AAC, WMA, FLAC, OGG, OPUS, and WEBM**  
-✅ Video Player works with **MP4, WEBM, OGV/OGG, and MKV**  
+✅ Audio Player works with **MP3, WAV, M4A, MP4, AAC, WMA, FLAC, OGG, OPUS, WEBM, and HLS streams**  
+✅ Video Player works with **MP4, WEBM, OGV/OGG, MKV, and HLS streams**  
 ✅ Responsive and **easy to integrate in React apps**  
-✅ **Keyboard shortcuts** for easy navigation
-✅ **Customizable UI icons**
+✅ **Keyboard shortcuts** for easy navigation  
+✅ **Customizable UI icons**  
+✅ **Ambient Glow Mode (`ambientMode`)**: YouTube-style dynamic, color-matched canvas aura behind video player  
+✅ **Waveform Customisation**: Custom `waveColor`, `progressColor`, `barWidth`, `barGap`, `barRadius` props  
+✅ **Accessibility & ARIA Audit**: Live screen reader announcements (`aria-live="polite"`), slider roles, and ARIA labels  
+✅ **Visibility & Analytics Callback**: `onVisibilityChange={(isVisible) => ...}` exposes player viewport and tab visibility state  
+✅ **Buffering Callback**: `onBuffering={(isBuffering) => ...}` exposes buffering state for custom loading indicators  
+✅ **Media Session API**: lock screen, headset, and keyboard media key controls built in  
+✅ **Buffered range display**: shows how much of the video has loaded on the timeline  
+✅ **Pause on scroll / tab switch**: optionally pause and auto-resume based on viewport and tab visibility
 
 ### Video Player
 
+- **Chapter Markers**: Define timeline chapters (`chapters={[{ time: 0, label: 'Intro' }]}`) with visual markers and hover tooltips.
+- **HLS Streaming & Quality Selector**: Stream `.m3u8` playlists and live streams with adaptive quality controls (Auto, 1080p, 720p, 480p, 360p).
 - **Play/Pause**: Toggle video playback.
 - **Mute/Unmute**: Toggle video sound.
 - **Fullscreen**: Toggle fullscreen mode.
@@ -57,17 +71,25 @@ React Video Audio Player is a lightweight, customisable **React video player** a
 - **Volume Control**: Adjust the volume.
 - **Playback Speed**: Change the playback speed (0.25x, 0.5x, 0.75x, 1x, 1.25x, 1.5x, 1.75x, 2x).
 - **Seek Control**: Seek to different parts of the video.
+- **Buffered Range**: Native slider background track shows how much of the video has been buffered.
+- **Media Session API**: Automatically registers with the browser so keyboard media keys, OS lock screen controls, and Bluetooth headset buttons control the player.
+- **Pause on scroll**: Use `pauseWhenHidden` to pause when the player leaves the viewport or browser tab and auto-resume when visible.
 - **Keyboard Shortcuts**: Built-in keyboard shortcuts for better accessibility and user experience.
 - **Custom Icons**: Replace default UI icons with your own custom React components or SVGs.
 - **Poster Auto Generation**: Automatically generate a poster image from the video.
 
 ### Audio Player
 
+- **Audio Playlist**: Multi-track playlists with automatic track advancement and next/prev controls.
+- **Chapter Markers**: Define timeline chapters with visual markers and hover tooltips for podcasts and long audio.
+- **HLS Audio Streaming & Bitrate Selector**: Stream audio `.m3u8` feeds with adaptive quality controls (Auto, 320k, 256k, 128k).
 - **Play/Pause**: Toggle audio playback.
 - **Mute/Unmute**: Toggle audio sound.
 - **Volume Control**: Adjust the volume.
 - **Playback Speed**: Change the playback speed (0.25x, 0.5x, 0.75x, 1x, 1.25x, 1.5x, 1.75x, 2x).
 - **Seek Control**: Seek to different parts of the audio.
+- **Media Session API**: Automatically registers with the browser so keyboard media keys, OS lock screen controls, and Bluetooth headset buttons control the player.
+- **Pause on scroll**: Use `pauseWhenHidden` to pause when the player leaves the viewport or browser tab and auto-resume when visible.
 - **Keyboard Shortcuts**: Built-in keyboard shortcuts for better accessibility and user experience.
 - **Custom Icons**: Replace default UI icons with your own custom React components or SVGs.
 

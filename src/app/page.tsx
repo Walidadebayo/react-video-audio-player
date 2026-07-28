@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { VideoPlayer, AudioPlayer } from "@/package/src";
 import {
   ArrowRight,
+  Bookmark,
   Captions,
   Layers3,
   MicVocal,
@@ -11,8 +12,10 @@ import {
   Pointer,
   ScanSearch,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   SquarePlay,
+  Tv,
   Waves,
 } from "lucide-react";
 import {
@@ -61,6 +64,30 @@ const featureCards = [
     description:
       "Delay loading until visible and block oversized autoplay so media stays predictable in production.",
   },
+  {
+    icon: Smartphone,
+    title: "OS media controls",
+    description:
+      "Media Session API is wired automatically. Keyboard media keys, lock screen controls on iOS and Android, and Bluetooth headset buttons all control the player without any extra code.",
+  },
+  {
+    icon: Tv,
+    title: "HLS Streaming & Quality Selector",
+    description:
+      "Full support for .m3u8 live and VOD streams with adaptive quality controls (Auto, 1080p, 720p, 480p, 360p, audio bitrates).",
+  },
+  {
+    icon: Bookmark,
+    title: "Timeline Chapter Markers",
+    description:
+      "Display interactive chapter ticks on progress bars with active chapter titles inside hover tooltips.",
+  },
+  {
+    icon: Sparkles,
+    title: "Ambient Glow Mode",
+    description:
+      "YouTube-style real-time canvas aura that projects a soft, color-matched ambient glow behind playing video.",
+  },
 ];
 
 const capabilityCards = [
@@ -105,7 +132,8 @@ export default function Home() {
             </div>
             <div className="space-y-5">
               <h1 className="max-w-3xl text-4xl font-black tracking-tight text-foreground sm:text-5xl lg:text-7xl">
-                A modern React media player with the details users actually feel.
+                A modern React media player with the details users actually
+                feel.
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
                 Ship a video and audio player that looks premium, loads only
@@ -122,7 +150,12 @@ export default function Home() {
                   Read the docs
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full px-6">
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="rounded-full px-6"
+              >
                 <Link
                   href="https://github.com/Walidadebayo/react-video-audio-player"
                   target="_blank"
@@ -132,7 +165,12 @@ export default function Home() {
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild variant="secondary" size="lg" className="rounded-full px-6">
+              <Button
+                asChild
+                variant="secondary"
+                size="lg"
+                className="rounded-full px-6"
+              >
                 <Link href="https://www.jsdelivr.com/package/npm/react-video-audio-player">
                   Use CDN
                 </Link>
@@ -142,9 +180,12 @@ export default function Home() {
             <div className="grid gap-3 sm:grid-cols-3">
               {[
                 "Video + audio in one package",
+                "HLS (.m3u8) streaming & quality controls",
                 "Lazy-loads when visible",
                 "Type-safe props and callbacks",
                 "Customizable UI icons",
+                "OS media controls built-in",
+                "Buffered range display",
               ].map((item) => (
                 <div
                   key={item}
@@ -182,13 +223,20 @@ export default function Home() {
             <CardContent className="space-y-4 p-6">
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
-                  "Playlist-aware timeline",
+                  "Playlist-aware video & audio",
+                  "Timeline chapter markers",
+                  "Dynamic Ambient Glow Mode",
+                  "HLS (.m3u8) streaming",
+                  "Adaptive quality selector",
                   "Preview snippets",
                   "Captions and track switching",
                   "Waveform audio with fallback",
                   "Poster generation",
                   "Customizable UI icons",
                   "Download hooks and shortcuts",
+                  "OS media controls (Media Session API)",
+                  "Buffered range display",
+                  "Pause and resume on scroll",
                 ].map((item) => (
                   <div
                     key={item}
@@ -212,11 +260,18 @@ export default function Home() {
                 <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {[
                     "Controls",
+                    "Chapters",
+                    "Audio Playlist",
+                    "ambientMode",
+                    "HLS Stream",
+                    "Quality",
                     "Tracks",
                     "Preview",
-                    "Playlist",
                     "PiP",
                     "Download",
+                    "MediaSession",
+                    "Buffered",
+                    "Scroll-pause",
                   ].map((item) => (
                     <div
                       key={item}
@@ -354,7 +409,12 @@ export default function Home() {
                   Explore docs
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full px-6">
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="rounded-full px-6"
+              >
                 <Link href="https://www.jsdelivr.com/package/npm/react-video-audio-player">
                   CDN setup
                 </Link>

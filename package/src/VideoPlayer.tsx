@@ -7,6 +7,7 @@ import React, {
   useRef,
   CSSProperties,
 } from "react";
+import Hls, { Level } from "hls.js";
 import { formatTime, playbackRateOptions } from "./lib/utils";
 import Select from "./components/Select";
 import Dropdown from "./components/Dropdown";
@@ -33,7 +34,11 @@ export type VideoMimeType =
   | "video/mp4"
   | "video/webm"
   | "video/ogg"
-  | "video/quicktime";
+  | "video/quicktime"
+  | "application/x-mpegURL"
+  | "application/vnd.apple.mpegurl"
+  | "application/dash+xml"
+  | (string & {});
 
 export type TrackKind =
   | "subtitles"
@@ -74,6 +79,11 @@ export interface PlaylistConfig {
   loop?: boolean; // loop entire playlist when reaching the end (default: false)
 }
 
+export interface Chapter {
+  time: number; // start time in seconds
+  label: string; // chapter title
+}
+
 export interface VideoPlayerIcons {
   play?: React.ReactNode;
   pause?: React.ReactNode;
@@ -90,6 +100,8 @@ export interface VideoPlayerIcons {
   error?: React.ReactNode;
   captions?: React.ReactNode;
   settings?: React.ReactNode;
+  nextTrack?: React.ReactNode;
+  prevTrack?: React.ReactNode;
 }
 
 export interface VideoPlayerProps {
@@ -138,7 +150,14 @@ export interface VideoPlayerProps {
   generatePosterAt?: number;
   preview?: VideoPreviewOptions;
   playlist?: PlaylistConfig;
+  chapters?: Chapter[];
   maxAutoPlayDuration?: number;
+  pauseWhenHidden?: boolean;
+  quality?: number | string;
+  onQualityChange?: (level: number, label: string) => void;
+  onVisibilityChange?: (isVisible: boolean) => void;
+  onBuffering?: (isBuffering: boolean) => void;
+  ambientMode?: boolean;
   icons?: VideoPlayerIcons;
 }
 
@@ -188,7 +207,14 @@ const VideoPlayer = ({
   generatePosterAt,
   preview,
   playlist,
+  chapters,
   maxAutoPlayDuration,
+  pauseWhenHidden = false,
+  quality,
+  onQualityChange,
+  onVisibilityChange,
+  onBuffering,
+  ambientMode = false,
   icons = {},
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -234,6 +260,49 @@ const VideoPlayer = ({
   const [playlistTotalDuration, setPlaylistTotalDuration] = useState<number>(0);
   const pendingSeekRef = useRef<{ index: number; time: number } | null>(null);
   const pendingPlayAfterSourceChangeRef = useRef(false);
+  const pausedByScrollRef = useRef(false);
+  const bufferedAmountRef = useRef<number>(0);
+  const hlsRef = useRef<Hls | null>(null);
+  const [availableQualities, setAvailableQualities] = useState<
+    Array<{ level: number; label: string }>
+  >([]);
+  const [currentQuality, setCurrentQuality] = useState<number>(-1);
+  const [speedToast, setSpeedToast] = useState<string | null>(null);
+  const speedToastTimerRef = useRef<number | null>(null);
+  const ambientCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    if (!ambientMode || !videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = ambientCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let animId: number;
+    let lastDraw = 0;
+
+    const drawFrame = (now: number) => {
+      if (now - lastDraw > 40) {
+        lastDraw = now;
+        if (video.readyState >= 2 && !video.paused && !video.ended) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        }
+      }
+      animId = requestAnimationFrame(drawFrame);
+    };
+
+    animId = requestAnimationFrame(drawFrame);
+    return () => cancelAnimationFrame(animId);
+  }, [ambientMode, isPlaying]);
+
+  const triggerSpeedToast = useCallback((rate: number) => {
+    setSpeedToast(`${rate}x`);
+    if (speedToastTimerRef.current) clearTimeout(speedToastTimerRef.current);
+    speedToastTimerRef.current = window.setTimeout(() => {
+      setSpeedToast(null);
+    }, 800);
+  }, []);
 
   const previewConfig = typeof preview === "object" ? preview : undefined;
   const isPreviewEnabled = Boolean(previewConfig); //if preview prop is provided and is an object, then preview mode is enabled
@@ -274,11 +343,38 @@ const VideoPlayer = ({
     }
   }, [playlist]);
 
+  const [isTabVisible, setIsTabVisible] = useState(() =>
+    typeof document !== "undefined" ? !document.hidden : true
+  );
+
   useEffect(() => {
-    if (isInView) {
+    const handleVisibilityChange = () => {
+      setIsTabVisible(!document.hidden);
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  const isEffectiveVisible = isInView && isTabVisible;
+
+  useEffect(() => {
+    if (isEffectiveVisible) {
       setShouldLoadMedia(true);
+      if (pauseWhenHidden && pausedByScrollRef.current && videoRef.current) {
+        pausedByScrollRef.current = false;
+        videoRef.current.play().catch(() => {});
+      }
+    } else if (pauseWhenHidden && videoRef.current && !videoRef.current.paused) {
+      pausedByScrollRef.current = true;
+      videoRef.current.pause();
     }
-  }, [isInView]);
+    if (onVisibilityChange) {
+      onVisibilityChange(isEffectiveVisible);
+    }
+  }, [isEffectiveVisible, pauseWhenHidden, onVisibilityChange]);
+
 
   useEffect(() => {
     if (videoRef.current) {
@@ -489,10 +585,44 @@ const VideoPlayer = ({
     playlistConfig,
   ]);
 
+  // Buffering events effect
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+
+    const handleWaiting = () => {
+      if (videoElement.readyState < 3) {
+        setIsLoading(true);
+        if (onBuffering) onBuffering(true);
+      }
+    };
+
+    const handleReadyToPlay = () => {
+      setIsLoading(false);
+      if (onBuffering) onBuffering(false);
+    };
+
+    videoElement.addEventListener("waiting", handleWaiting);
+    videoElement.addEventListener("playing", handleReadyToPlay);
+    videoElement.addEventListener("canplay", handleReadyToPlay);
+    videoElement.addEventListener("canplaythrough", handleReadyToPlay);
+    videoElement.addEventListener("ratechange", handleReadyToPlay);
+    videoElement.addEventListener("seeked", handleReadyToPlay);
+
+    return () => {
+      videoElement.removeEventListener("waiting", handleWaiting);
+      videoElement.removeEventListener("playing", handleReadyToPlay);
+      videoElement.removeEventListener("canplay", handleReadyToPlay);
+      videoElement.removeEventListener("canplaythrough", handleReadyToPlay);
+      videoElement.removeEventListener("ratechange", handleReadyToPlay);
+      videoElement.removeEventListener("seeked", handleReadyToPlay);
+    };
+  }, [onBuffering]);
+
   useEffect(() => {
     const timelineInput = timelineInputRef.current;
     if (duration) {
-      updateRangeBackground(timelineInput);
+      updateRangeBackground(timelineInput, currentTime, duration, bufferedAmountRef.current);
     }
   }, [currentTime, duration]);
 
@@ -676,6 +806,131 @@ const VideoPlayer = ({
     currentPlaylistIndex,
     playlistTotalDuration,
   ]);
+
+  // HLS Streaming Effect
+  useEffect(() => {
+    const video = videoRef.current;
+    const activeSrc = playlistConfig?.items?.length
+      ? playlistConfig.items[currentPlaylistIndex]?.src
+      : src;
+
+    if (!video || !activeSrc || !shouldLoadMedia) return;
+
+    const isHls =
+      activeSrc.includes(".m3u8") ||
+      sources?.some(
+        (s) => s.type === "application/x-mpegURL" || s.src.includes(".m3u8"),
+      );
+      console.log("isHls", isHls)
+    if (!isHls) return;
+
+    // 1. HLS.js support (MSE-capable browsers)
+    if (Hls && Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+      });
+      hls.loadSource(activeSrc);
+      hls.attachMedia(video);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+        console.log("MANIFEST_PARSED data:", data);
+        const levels = data.levels.map((lvl: Level, index: number) => ({
+          level: index,
+          label: lvl.height
+            ? `${lvl.height}p`
+            : `${Math.round(lvl.bitrate / 1000)}k`,
+        }));
+        setAvailableQualities([{ level: -1, label: "Auto" }, ...levels]);
+      });
+
+      hls.on(Hls.Events.FRAG_BUFFERED, () => {
+        setIsLoading(false);
+        if (onBuffering) onBuffering(false);
+      });
+
+      hls.on(Hls.Events.LEVEL_SWITCHED, () => {
+        setIsLoading(false);
+        if (onBuffering) onBuffering(false);
+      });
+
+      hlsRef.current = hls;
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      // 2. Native Safari iOS fallback
+      video.src = activeSrc;
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [src, sources, shouldLoadMedia, playlistConfig, currentPlaylistIndex, onBuffering]);
+
+  const handleQualityChange = useCallback(
+    (level: number) => {
+      setCurrentQuality(level);
+      if (hlsRef.current) {
+        hlsRef.current.currentLevel = level;
+        hlsRef.current.nextLevel = level;
+      }
+      setIsLoading(false);
+      if (onBuffering) onBuffering(false);
+      const found = availableQualities.find((q) => q.level === level);
+      if (onQualityChange) {
+        onQualityChange(level, found?.label || "Auto");
+      }
+    },
+    [availableQualities, onQualityChange, onBuffering],
+  );
+
+  useEffect(() => {
+    if (quality !== undefined && availableQualities.length > 0) {
+      const match = availableQualities.find(
+        (q) =>
+          q.label.toLowerCase() === String(quality).toLowerCase() ||
+          q.level === Number(quality),
+      );
+      if (match) {
+        handleQualityChange(match.level);
+      }
+    }
+  }, [quality, availableQualities, handleQualityChange]);
+
+  // Buffered range tracking
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+    const updateBuffered = () => {
+      try {
+        const buf = videoElement.buffered;
+        const dur = videoElement.duration;
+        if (buf && buf.length > 0 && dur > 0) {
+          const end = buf.end(buf.length - 1);
+          bufferedAmountRef.current = end;
+          if (timelineInputRef.current) {
+            updateRangeBackground(
+              timelineInputRef.current,
+              videoElement.currentTime,
+              dur,
+              end
+            );
+          }
+        } else {
+          bufferedAmountRef.current = 0;
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    videoElement.addEventListener("progress", updateBuffered);
+    videoElement.addEventListener("timeupdate", updateBuffered);
+    return () => {
+      videoElement.removeEventListener("progress", updateBuffered);
+      videoElement.removeEventListener("timeupdate", updateBuffered);
+    };
+  }, [src, sources]);
 
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -861,6 +1116,52 @@ const VideoPlayer = ({
     maxAutoPlayDuration,
     playlistConfig?.items?.length,
   ]);
+
+  // Media Session API
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.mediaSession) return;
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: src || "Video",
+        mediaType: "video",
+      } as MediaMetadataInit);
+      navigator.mediaSession.setActionHandler("play", () => {
+        videoRef.current?.play().catch(() => {});
+      });
+      navigator.mediaSession.setActionHandler("pause", () => {
+        videoRef.current?.pause();
+      });
+      navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+        if (videoRef.current)
+          videoRef.current.currentTime = Math.max(
+            0,
+            videoRef.current.currentTime - (details.seekOffset ?? 10),
+          );
+      });
+      navigator.mediaSession.setActionHandler("seekforward", (details) => {
+        if (videoRef.current)
+          videoRef.current.currentTime = Math.min(
+            videoRef.current.duration || 0,
+            videoRef.current.currentTime + (details.seekOffset ?? 10),
+          );
+      });
+      navigator.mediaSession.setActionHandler("seekto", (details) => {
+        if (videoRef.current && details.seekTime != null)
+          videoRef.current.currentTime = details.seekTime;
+      });
+    } catch {
+      /* Media Session not supported */
+    }
+    return () => {
+      try {
+        if (typeof navigator !== "undefined" && navigator.mediaSession) {
+          (["play", "pause", "seekbackward", "seekforward", "seekto"] as MediaSessionAction[]).forEach(
+            (a) => { try { navigator.mediaSession.setActionHandler(a, null); } catch { /* ignore */ } }
+          );
+        }
+      } catch { /* ignore */ }
+    };
+  }, [src]);
 
   useEffect(() => {
     if (getVideoRef) {
@@ -1151,9 +1452,12 @@ const VideoPlayer = ({
         videoRef.current.playbackRate = rate;
         if (onPlaybackRateChange) onPlaybackRateChange(rate);
       }
+      setIsLoading(false);
+      if (onBuffering) onBuffering(false);
+      triggerSpeedToast(rate);
       resetControlTimeout();
     },
-    [resetControlTimeout, onPlaybackRateChange],
+    [resetControlTimeout, onPlaybackRateChange, triggerSpeedToast, onBuffering],
   );
 
   const togglePlay = useCallback(() => {
@@ -1543,6 +1847,8 @@ const VideoPlayer = ({
   return (
     <div
       ref={videoContainerRef}
+      role="region"
+      aria-label="Video Player"
       style={
         {
           "--accent-color": accentColor,
@@ -1550,6 +1856,7 @@ const VideoPlayer = ({
           height,
           boxSizing: "border-box",
           minHeight: "180px",
+          overflow: "hidden",
           ...style,
         } as CSSProperties
       }
@@ -1557,6 +1864,20 @@ const VideoPlayer = ({
         isFullscreen ? "fullscreen-container" : ""
       }`}
     >
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {isPlaying ? "Video playing" : "Video paused"}
+      </div>
+      {ambientMode && (
+        <div className="ambient-glow-wrapper">
+          <canvas
+            ref={ambientCanvasRef}
+            className="ambient-glow-canvas"
+            width={64}
+            height={36}
+            aria-hidden
+          />
+        </div>
+      )}
       <div
         className={`control-relative ${isFullscreen ? "fullscreen-video" : ""}`}
       >
@@ -1608,6 +1929,8 @@ const VideoPlayer = ({
             </div>
           </div>
         )}
+
+        {speedToast && <div className="speed-toast-overlay">{speedToast}</div>}
 
         {videoError ||
         (!src && !sources?.length && !playlistConfig?.items.length) ? (
@@ -1839,27 +2162,57 @@ const VideoPlayer = ({
             </div>
             <div className="all-controls">
               {!controlsToExclude.includes("progress") && (
-                <input
-                  type="range"
-                  min="0"
-                  max={duration || 0}
-                  step="any"
-                  value={currentTime}
-                  onChange={handleTimelineChange}
-                  onMouseMove={handleTimelineMouseMove}
-                  onMouseLeave={handleTimelineMouseLeave}
-                  ref={timelineInputRef}
-                  disabled={videoError}
-                  className="accent-color-input timeline"
-                  aria-label="Seek control"
-                />
+                <div className="timeline-container">
+                  <input
+                    type="range"
+                    min="0"
+                    max={duration || 0}
+                    step="any"
+                    value={currentTime}
+                    onChange={handleTimelineChange}
+                    onMouseMove={handleTimelineMouseMove}
+                    onMouseLeave={handleTimelineMouseLeave}
+                    ref={timelineInputRef}
+                    disabled={videoError}
+                    className="accent-color-input timeline"
+                    aria-label="Seek control"
+                    aria-valuenow={currentTime}
+                    aria-valuemin={0}
+                    aria-valuemax={duration || 0}
+                  />
+                  {chapters && chapters.length > 0 && duration > 0 && (
+                    <div className="chapter-markers-container">
+                      {chapters.map((ch, idx) => {
+                        const pos = (ch.time / duration) * 100;
+                        if (pos <= 0 || pos >= 100) return null;
+                        return (
+                          <div
+                            key={idx}
+                            className="chapter-marker"
+                            style={{ left: `${pos}%` }}
+                            title={`${ch.label} (${formatTime(ch.time)})`}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               )}
+
               {hoverTime !== null && hoverPosition !== null && (
                 <div
                   className="timeline-tooltip accent-color"
                   style={{ left: hoverPosition - tooltipWidth / -4.7 }}
                 >
-                  {formatTime(hoverTime)}
+                  {(() => {
+                    const activeCh = chapters && hoverTime !== null
+                      ? [...chapters]
+                          .sort((a, b) => a.time - b.time)
+                          .reverse()
+                          .find((ch) => hoverTime >= ch.time)
+                      : null;
+                    return activeCh ? `${activeCh.label} • ${formatTime(hoverTime)}` : formatTime(hoverTime);
+                  })()}
                 </div>
               )}
               <div className="all-controls-bottom">
@@ -2083,6 +2436,29 @@ const VideoPlayer = ({
                           handleSpeedChange(newPlaybackRate);
                         }}
                         key={playbackRate}
+                      />
+                    </div>
+                  )}
+                  {availableQualities.length > 0 && (
+                    <div
+                      className={`control-relative color-white ${
+                        containerWidth < 220
+                          ? "hide-control"
+                          : "show-control-inline-flex"
+                      }`}
+                    >
+                      <Dropdown
+                        items={availableQualities.map((q) => ({
+                          label: q.label,
+                          onClick: () => handleQualityChange(q.level),
+                        }))}
+                        tickSelected
+                        ariaLabel="Quality"
+                        buttonLabel={
+                          <span className="quality-badge accent-color-hover">
+                            {availableQualities.find((q) => q.level === currentQuality)?.label || "Auto"}
+                          </span>
+                        }
                       />
                     </div>
                   )}
