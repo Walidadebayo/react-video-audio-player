@@ -1,23 +1,24 @@
-@tailwind components;
-@tailwind utilities;
-
-.accent-color {
+.video-player-wrapper .accent-color,
+.audio-player-wrapper .accent-color {
   background-color: var(--accent-color) !important;
 }
 
-.accent-color-hover:hover {
+.video-player-wrapper .accent-color-hover:hover,
+.audio-player-wrapper .accent-color-hover:hover {
   background-color: var(--accent-color) !important;
   transition: background-color 0.2s !important;
   color: white !important;
   transition: color 0.2s !important;
 }
 
-.accent-color-hover-cc:hover {
+.video-player-wrapper .accent-color-hover-cc:hover,
+.audio-player-wrapper .accent-color-hover-cc:hover {
   fill: currentColor !important;
   transition: fill 0.2s !important;
 }
 
-.accent-color-input {
+.video-player-wrapper .accent-color-input,
+.audio-player-wrapper .accent-color-input {
   -webkit-appearance: none !important;
   appearance: none !important;
   height: 4px !important;
@@ -34,7 +35,8 @@
   transition: background 0.2s !important;
 }
 
-.accent-color-input::-webkit-slider-thumb {
+.video-player-wrapper .accent-color-input::-webkit-slider-thumb,
+.audio-player-wrapper .accent-color-input::-webkit-slider-thumb {
   -webkit-appearance: none !important;
   appearance: none !important;
   width: 15px !important;
@@ -46,11 +48,13 @@
   transition: transform 0.2s !important;
 }
 
-.accent-color-input::-webkit-slider-thumb:hover {
+.video-player-wrapper .accent-color-input::-webkit-slider-thumb:hover,
+.audio-player-wrapper .accent-color-input::-webkit-slider-thumb:hover {
   transform: scale(1.1) !important;
 }
 
-.accent-color-input::-moz-range-thumb {
+.video-player-wrapper .accent-color-input::-moz-range-thumb,
+.audio-player-wrapper .accent-color-input::-moz-range-thumb {
   -webkit-appearance: none !important;
   appearance: none !important;
   width: 15px !important;
@@ -62,19 +66,20 @@
   transition: transform 0.2s !important;
 }
 
-.accent-color-input::-moz-range-thumb:hover {
+.video-player-wrapper .accent-color-input::-moz-range-thumb:hover,
+.audio-player-wrapper .accent-color-input::-moz-range-thumb:hover {
   transform: scale(1.1) !important;
 }
 
-.fullscreen-video {
+.video-player-wrapper.fullscreen-video {
   @apply !w-full flex items-center justify-center;
 }
 
-.fullscreen-video video {
+.video-player-wrapper.fullscreen-video video {
   @apply !w-full !h-full object-cover;
 }
 
-.fullscreen-container {
+.video-player-wrapper.fullscreen-container {
   @apply !h-screen flex items-center justify-center;
 }
 
@@ -177,35 +182,24 @@
   @apply flex items-center justify-center gap-2;
 }
 
-.video-player-wrapper .mobile-controls-wrapper .skip-forward-backward {
-  @apply text-white p-1 rounded-lg bg-black/90;
-}
-
-.video-player-wrapper .mobile-controls-wrapper .playPause {
-  @apply text-white p-1 rounded-lg;
-}
-
 .video-player-wrapper .controls .all-controls {
   @apply w-full bottom-0 absolute px-2 py-1 bg-black/70;
-} 
- 
-
-/* .video-player-wrapper .controls .all-controls .ctrl {
-  @apply mx-8;
-} */
+}
 
 .video-player-wrapper .timeline {
   @apply cursor-pointer w-full relative;
 }
 
-.timeline-container {
+.video-player-wrapper .timeline-container,
+.audio-player-wrapper .timeline-container {
   position: relative;
   width: 100%;
   display: flex;
   align-items: center;
 }
 
-.chapter-markers-container {
+.video-player-wrapper .chapter-markers-container,
+.audio-player-wrapper .chapter-markers-container {
   position: absolute;
   top: 0;
   left: 0;
@@ -214,7 +208,8 @@
   pointer-events: none;
 }
 
-.chapter-marker {
+.video-player-wrapper .chapter-marker,
+.audio-player-wrapper .chapter-marker {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -225,7 +220,6 @@
   z-index: 2;
   box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
 }
-
 
 .video-player-wrapper .all-controls-bottom {
   @apply flex items-center justify-between;
@@ -260,14 +254,14 @@
 }
 
 .audio-player-wrapper {
-  @apply relative  border-2 border-gray-400 rounded-xl p-4 bg-slate-100 dark:bg-gray-800 dark:border-gray-600;
+  @apply relative border-2 border-gray-400 rounded-xl p-4 bg-slate-100 dark:bg-gray-800 dark:border-gray-600;
 }
 
 .audio-player-wrapper .controls {
   @apply flex items-center gap-1;
 }
 
-.waveform {
+.audio-player-wrapper .waveform {
   height: 48px;
   max-height: 48px;
   overflow: hidden;
@@ -293,7 +287,8 @@
   @apply absolute bottom-2 right-2;
 }
 
-.download-button {
+.video-player-wrapper .download-button,
+.audio-player-wrapper .download-button {
   @apply p-0.5 rounded hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-gray-100;
 }
 
@@ -305,36 +300,45 @@
   @apply text-white bg-red-500 px-2 py-1 rounded-md hover:bg-red-600;
 }
 
-.volume-slider {
+.video-player-wrapper .volume-slider,
+.audio-player-wrapper .volume-slider {
   @apply sm:w-20 w-14;
 }
-.hide-control {
+
+.video-player-wrapper .hide-control,
+.audio-player-wrapper .hide-control {
   @apply hidden;
 }
 
-.show-control {
+.video-player-wrapper .show-control,
+.audio-player-wrapper .show-control {
   @apply block;
 }
 
-.show-control-inline-flex {
+.video-player-wrapper .show-control-inline-flex,
+.audio-player-wrapper .show-control-inline-flex {
   @apply inline-flex;
 }
 
-.show-control-inline-block {
+.video-player-wrapper .show-control-inline-block,
+.audio-player-wrapper .show-control-inline-block {
   @apply inline-block;
 }
 
-.control-relative {
+.video-player-wrapper .control-relative,
+.audio-player-wrapper .control-relative {
   @apply relative;
 }
 
-.downloading {
+.video-player-wrapper .downloading,
+.audio-player-wrapper .downloading {
   @apply animate-spin;
 }
 
 /* dropdown */
 
-.dropdown {
+.video-player-wrapper .dropdown,
+.audio-player-wrapper .dropdown {
   @apply relative inline-block;
 }
 
@@ -342,63 +346,71 @@
   @apply text-white;
 }
 
-.dropdown .dropdown-button {
-  @apply items-center justify-between whitespace-nowrap rounded-md border bg-transparent text-base focus:outline-none [&>span]:line-clamp-1 w-min border-none  focus:ring-0 p-1 h-full;
+.video-player-wrapper .dropdown .dropdown-button,
+.audio-player-wrapper .dropdown .dropdown-button {
+  @apply items-center justify-between whitespace-nowrap rounded-md border bg-transparent text-base focus:outline-none [&>span]:line-clamp-1 w-min border-none focus:ring-0 p-1 h-full;
 }
 
-.dropdown .dropdown-content {
+.video-player-wrapper .dropdown .dropdown-content,
+.audio-player-wrapper .dropdown .dropdown-content {
   @apply absolute top-9 left-1/2 transform -translate-x-1/2 hidden z-50;
 }
 
-.dropdown .select-content {
+.video-player-wrapper .dropdown .select-content,
+.audio-player-wrapper .dropdown .select-content {
   @apply absolute bottom-9 left-1/2 transform -translate-x-1/2 hidden z-50;
 }
 
-.dropdown .dropdown-content.show,
-.dropdown .select-content.show {
+.video-player-wrapper .dropdown .dropdown-content.show,
+.audio-player-wrapper .dropdown .dropdown-content.show,
+.video-player-wrapper .dropdown .select-content.show,
+.audio-player-wrapper .dropdown .select-content.show {
   @apply !block;
 }
 
-.dropdown .dropdown-content .dropdown-items,
-.dropdown .select-content .dropdown-items {
+.video-player-wrapper .dropdown .dropdown-content .dropdown-items,
+.audio-player-wrapper .dropdown .dropdown-content .dropdown-items,
+.video-player-wrapper .dropdown .select-content .dropdown-items,
+.audio-player-wrapper .dropdown .select-content .dropdown-items {
   @apply relative z-50 p-1 max-h-96 min-w-[8rem] space-y-1 rounded-md border bg-slate-50 dark:bg-gray-900 shadow-md;
 }
 
-.dropdown .dropdown-content .dropdown-items .dropdown-item,
-.dropdown .select-content .dropdown-items .dropdown-item {
+.video-player-wrapper .dropdown .dropdown-content .dropdown-items .dropdown-item,
+.audio-player-wrapper .dropdown .dropdown-content .dropdown-items .dropdown-item,
+.video-player-wrapper .dropdown .select-content .dropdown-items .dropdown-item,
+.audio-player-wrapper .dropdown .select-content .dropdown-items .dropdown-item {
   @apply relative flex w-full hover:bg-gray-200 dark:hover:bg-gray-500 dark:text-gray-100 text-gray-800 cursor-pointer select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none;
 }
 
-.dropdown
-  .select-content
-  .dropdown-items
-  .dropdown-item
-  .select-item-icon-check,
-.dropdown
-  .dropdown-content
-  .dropdown-items
-  .dropdown-item
-  .select-item-icon-check {
+.video-player-wrapper .dropdown .select-content .dropdown-items .dropdown-item .select-item-icon-check,
+.audio-player-wrapper .dropdown .select-content .dropdown-items .dropdown-item .select-item-icon-check,
+.video-player-wrapper .dropdown .dropdown-content .dropdown-items .dropdown-item .select-item-icon-check,
+.audio-player-wrapper .dropdown .dropdown-content .dropdown-items .dropdown-item .select-item-icon-check {
   @apply absolute right-2 flex h-3.5 w-3.5 items-center justify-center;
 }
 
-.dropdown .select-content .dropdown-items .dropdown-item.selected {
+.video-player-wrapper .dropdown .select-content .dropdown-items .dropdown-item.selected,
+.audio-player-wrapper .dropdown .select-content .dropdown-items .dropdown-item.selected {
   @apply bg-gray-200 dark:bg-gray-500;
 }
 
-.timeline-tooltip {
+.video-player-wrapper .timeline-tooltip,
+.audio-player-wrapper .timeline-tooltip {
   @apply absolute text-white text-xs px-2 py-1 rounded whitespace-nowrap pointer-events-none -top-6 -left-1/2 -translate-x-1/2 after:absolute after:-bottom-2 after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-l-transparent after:border-r-transparent after:border-b-transparent after:border-[var(--accent-color)];
 }
 
-.timeline-tooltip-thumbnail {
-  @apply max-w-40  border-2 rounded-md object-cover absolute -top-20 left-1/2 -translate-x-1/2;
+.video-player-wrapper .timeline-tooltip-thumbnail,
+.audio-player-wrapper .timeline-tooltip-thumbnail {
+  @apply max-w-40 border-2 rounded-md object-cover absolute -top-20 left-1/2 -translate-x-1/2;
 }
 
-.color-white {
+.video-player-wrapper .color-white,
+.audio-player-wrapper .color-white {
   @apply text-white;
 }
 
-.speed-toast-overlay {
+.video-player-wrapper .speed-toast-overlay,
+.audio-player-wrapper .speed-toast-overlay {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -445,7 +457,7 @@
   z-index: 10;
 }
 
-.ambient-glow-wrapper {
+.video-player-wrapper .ambient-glow-wrapper {
   position: absolute;
   inset: -30px;
   z-index: -1;
@@ -454,7 +466,7 @@
   border-radius: inherit;
 }
 
-.ambient-glow-canvas {
+.video-player-wrapper .ambient-glow-canvas {
   width: 100%;
   height: 100%;
   filter: blur(50px) brightness(1.25) saturate(1.5);
@@ -463,7 +475,8 @@
   transition: opacity 0.4s ease;
 }
 
-.sr-only {
+.video-player-wrapper .sr-only,
+.audio-player-wrapper .sr-only {
   position: absolute;
   width: 1px;
   height: 1px;
