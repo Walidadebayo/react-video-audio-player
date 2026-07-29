@@ -1,6 +1,6 @@
 {
   "name": "react-video-audio-player",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "React Video Audio Player is a lightweight, customisable React video player and React audio player that supports video, audio, and streaming playback. Perfect for building modern media applications.",
   "license": "MIT",
   "author": {
@@ -58,19 +58,14 @@
     "build:css": "tailwindcss -i ./src/video-audio-player.css -o ./dist/video-audio-player.css -m"
   },
   "dependencies": {
+    "hls.js": "^1.5.20",
     "react": ">=16.8.0",
     "react-dom": ">=16.8.0",
     "wavesurfer.js": ">=7.9.1"
   },
   "peerDependencies": {
     "react": ">=16.8.0",
-    "react-dom": ">=16.8.0",
-    "hls.js": ">=1.0.0"
-  },
-  "peerDependenciesMeta": {
-    "hls.js": {
-      "optional": true
-    }
+    "react-dom": ">=16.8.0"
   },
   "contributors": [
     {

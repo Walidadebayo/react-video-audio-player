@@ -821,10 +821,8 @@ const VideoPlayer = ({
       sources?.some(
         (s) => s.type === "application/x-mpegURL" || s.src.includes(".m3u8"),
       );
-      console.log("isHls", isHls)
     if (!isHls) return;
 
-    // 1. HLS.js support (MSE-capable browsers)
     if (Hls && Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: true,
@@ -834,7 +832,6 @@ const VideoPlayer = ({
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-        console.log("MANIFEST_PARSED data:", data);
         const levels = data.levels.map((lvl: Level, index: number) => ({
           level: index,
           label: lvl.height
@@ -856,7 +853,6 @@ const VideoPlayer = ({
 
       hlsRef.current = hls;
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      // 2. Native Safari iOS fallback
       video.src = activeSrc;
     }
 

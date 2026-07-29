@@ -342,7 +342,6 @@ const AudioPlayer = ({
     const isHls = activeSrc.includes(".m3u8");
     if (!isHls) return;
 
-    // 1. HLS.js support (MSE-capable browsers)
     if (Hls && Hls.isSupported()) {
       const hls = new Hls();
       hls.loadSource(activeSrc);
@@ -370,7 +369,6 @@ const AudioPlayer = ({
 
       hlsRef.current = hls;
     } else if (audioEl.canPlayType("application/vnd.apple.mpegurl")) {
-      // 2. Native Safari iOS fallback
       audioEl.src = activeSrc;
     }
 
