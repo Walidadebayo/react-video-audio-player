@@ -293,10 +293,14 @@ describe("VideoPlayer", () => {
     expect(onEnded).not.toHaveBeenCalled();
   });
 
-  test("renders ambient mode canvas when ambientMode prop is true", () => {
+  test("renders ambient mode canvas and inner glow when ambientMode prop is true", () => {
     const { container } = render(<VideoPlayer {...defaultProps} ambientMode />);
     const canvas = container.querySelector(".ambient-glow-canvas");
+    const innerCanvas = container.querySelector(".ambient-glow-inner-canvas");
+    const wrapper = container.querySelector(".video-player-wrapper");
     expect(canvas).toBeInTheDocument();
+    expect(innerCanvas).toBeInTheDocument();
+    expect(wrapper).toHaveClass("ambient-mode-active");
   });
 
   test("renders timeline chapter markers when chapters prop is provided", async () => {

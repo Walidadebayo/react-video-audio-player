@@ -366,8 +366,10 @@ export default function Home() {
               <CardContent className="p-4 flex justify-center items-center md:p-6 ">
                 <VideoPlayer
                   src="https://cdn.pixabay.com/video/2026/04/17/347325_large.mp4"
-                  className="rounded-2xl w-full sm:!w-[800px] max-w-full"
-                  generatePosterAt={600} 
+                  className="rounded-2xl w-full  max-w-full"
+                  generatePosterAt={600}
+                  ambientMode
+                  autoPlay
                 />
               </CardContent>
             </Card>
@@ -381,7 +383,7 @@ export default function Home() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-4 md:p-6">
-                <AudioPlayer src="https://cdn.pixabay.com/audio/2024/11/11/audio_889cf15c3c.mp3" />
+                <AudioPlayer autoPlay src="https://cdn.pixabay.com/audio/2024/11/11/audio_889cf15c3c.mp3" />
               </CardContent>
             </Card>
           </div>

@@ -7,8 +7,10 @@ import React, {
   useRef,
   CSSProperties,
 } from "react";
-import WaveSurfer, { WaveSurferOptions } from "wavesurfer.js";
-import Hls, { Level } from "hls.js";
+import type WaveSurfer from "wavesurfer.js";
+import type { WaveSurferOptions } from "wavesurfer.js";
+import type Hls from "hls.js";
+import type { Level } from "hls.js";
 import { formatTime, playbackRateOptions } from "./lib/utils";
 import { updateRangeBackground } from "./lib/utils";
 import { useInView } from "./lib/useInView";
@@ -304,9 +306,9 @@ const AudioPlayer = ({
         pausedByScrollRef.current = false;
         try {
           if (useWaveform && waveSurfer.current) {
-            waveSurfer.current.play();
+            waveSurfer.current.play().catch(() => {});
           } else if (audioElRef.current) {
-            audioElRef.current.play();
+            audioElRef.current.play().catch(() => {});
           }
         } catch {
           /* ignore */
@@ -342,37 +344,51 @@ const AudioPlayer = ({
     const isHls = activeSrc.includes(".m3u8");
     if (!isHls) return;
 
-    if (Hls && Hls.isSupported()) {
-      const hls = new Hls();
-      hls.loadSource(activeSrc);
-      hls.attachMedia(audioEl);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-        const levels = data.levels.map((lvl: Level, index: number) => ({
-          level: index,
-          label: lvl.bitrate
-            ? `${Math.round(lvl.bitrate / 1000)}k`
-            : `Q${index + 1}`,
-        }));
-        setAvailableQualities([{ level: -1, label: "Auto" }, ...levels]);
-      });
-
-      hls.on(Hls.Events.FRAG_BUFFERED, () => {
-        setIsLoading(false);
-        if (onBuffering) onBuffering(false);
-      });
-
-      hls.on(Hls.Events.LEVEL_SWITCHED, () => {
-        setIsLoading(false);
-        if (onBuffering) onBuffering(false);
-      });
-
-      hlsRef.current = hls;
-    } else if (audioEl.canPlayType("application/vnd.apple.mpegurl")) {
+    if (audioEl.canPlayType("application/vnd.apple.mpegurl")) {
       audioEl.src = activeSrc;
+      return;
     }
 
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const HlsModule = await import("hls.js");
+        const HlsClass = HlsModule.default || HlsModule;
+        if (cancelled || !HlsClass || !HlsClass.isSupported()) return;
+
+        const hls = new HlsClass();
+        hls.loadSource(activeSrc);
+        hls.attachMedia(audioEl);
+
+        hls.on(HlsClass.Events.MANIFEST_PARSED, (_, data: { levels: Level[] }) => {
+          const levels = data.levels.map((lvl: Level, index: number) => ({
+            level: index,
+            label: lvl.bitrate
+              ? `${Math.round(lvl.bitrate / 1000)}k`
+              : `Q${index + 1}`,
+          }));
+          setAvailableQualities([{ level: -1, label: "Auto" }, ...levels]);
+        });
+
+        hls.on(HlsClass.Events.FRAG_BUFFERED, () => {
+          setIsLoading(false);
+          if (onBuffering) onBuffering(false);
+        });
+
+        hls.on(HlsClass.Events.LEVEL_SWITCHED, () => {
+          setIsLoading(false);
+          if (onBuffering) onBuffering(false);
+        });
+
+        hlsRef.current = hls;
+      } catch (err) {
+        console.warn("Failed to load HLS.js dynamically", err);
+      }
+    })();
+
     return () => {
+      cancelled = true;
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -480,7 +496,7 @@ const AudioPlayer = ({
         if (wsAny.isPlaying && typeof wsAny.isPlaying === "function") {
           const currentlyPlaying = wsAny.isPlaying();
           if (currentlyPlaying) waveSurfer.current.pause();
-          else waveSurfer.current.play();
+          else waveSurfer.current.play().catch(() => {});
         } else {
           waveSurfer.current.playPause();
         }
@@ -493,7 +509,7 @@ const AudioPlayer = ({
       }
     } else if (audioElRef.current) {
       try {
-        if (audioElRef.current.paused) audioElRef.current.play();
+        if (audioElRef.current.paused) audioElRef.current.play().catch(() => {});
         else audioElRef.current.pause();
       } catch {
         // ignore
@@ -813,7 +829,9 @@ const AudioPlayer = ({
               probe.removeEventListener("canplay", onCanPlay);
               probe.removeEventListener("error", onError);
               try {
-                probe.src = "";
+                probe.pause();
+                probe.removeAttribute("src");
+                probe.load();
               } catch {
                 /* Ignore cleanup errors */
               }
@@ -860,7 +878,11 @@ const AudioPlayer = ({
         }
 
         setIsLoading(true);
-        waveSurfer.current = WaveSurfer.create(wsOptions);
+        const WaveSurferModule = await import("wavesurfer.js");
+        const WaveSurferClass = WaveSurferModule.default || WaveSurferModule;
+        if (cancelled) return;
+
+        waveSurfer.current = WaveSurferClass.create(wsOptions);
         setCurrentTime(0);
 
         try {
@@ -891,10 +913,18 @@ const AudioPlayer = ({
           if (media) {
             media.loop = loop;
             media.onvolumechange = handleVolumeChange;
-            const shouldAutoplay =
-              autoPlay &&
-              (!maxAutoPlayDuration || durationSeconds <= maxAutoPlayDuration);
-            if (shouldAutoplay) media.autoplay = true;
+          }
+          const shouldAutoplay =
+            autoPlay &&
+            (!maxAutoPlayDuration || durationSeconds <= maxAutoPlayDuration);
+          if (shouldAutoplay && waveSurfer.current) {
+            waveSurfer.current.play().catch(() => {
+              if (waveSurfer.current) {
+                waveSurfer.current.setMuted(true);
+                setIsMuted(true);
+                waveSurfer.current.play().catch(() => {});
+              }
+            });
           }
           waveSurfer.current.on("seeking", handleSeeked);
           if (!controls) {
@@ -1049,7 +1079,13 @@ const AudioPlayer = ({
 
   // Media Session API
   useEffect(() => {
-    if (typeof navigator === "undefined" || !navigator.mediaSession) return;
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.mediaSession ||
+      typeof window === "undefined" ||
+      typeof window.MediaMetadata === "undefined"
+    )
+      return;
     const getMedia = () =>
       useWaveform && waveSurfer.current
         ? (waveSurfer.current.getMediaElement?.() ?? audioElRef.current)
@@ -1060,8 +1096,8 @@ const AudioPlayer = ({
       });
       navigator.mediaSession.setActionHandler("play", () => {
         try {
-          if (useWaveform && waveSurfer.current) waveSurfer.current.play();
-          else getMedia()?.play();
+          if (useWaveform && waveSurfer.current) waveSurfer.current.play().catch(() => {});
+          else getMedia()?.play().catch(() => {});
         } catch { /* ignore */ }
       });
       navigator.mediaSession.setActionHandler("pause", () => {
@@ -1127,13 +1163,16 @@ const AudioPlayer = ({
         setIsLoading(false);
         const shouldAutoplay =
           autoPlay && (!maxAutoPlayDuration || d <= maxAutoPlayDuration);
-        if (shouldAutoplay && !audio.autoplay) {
-          audio.autoplay = true;
-          audio.play().catch(() => {
-            /* Ignore autoplay failure */
+        if (shouldAutoplay) {
+          audio.play().then(() => setIsPlaying(true)).catch((err) => {
+            if (err && err.name === "NotAllowedError") {
+              audio.muted = true;
+              setIsMuted(true);
+              audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+            } else {
+              setIsPlaying(false);
+            }
           });
-        } else if (!shouldAutoplay) {
-          audio.autoplay = false;
         }
         if (onReady) onReady();
         if (onDuration) onDuration(d);

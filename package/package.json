@@ -1,6 +1,6 @@
 {
   "name": "react-video-audio-player",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "React Video Audio Player is a lightweight, customisable React video player and React audio player that supports video, audio, and streaming playback. Perfect for building modern media applications.",
   "license": "MIT",
   "author": {
@@ -10,7 +10,27 @@
   },
   "type": "module",
   "main": "dist/index.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./video": {
+      "types": "./dist/VideoPlayer.d.ts",
+      "import": "./dist/VideoPlayer.js",
+      "default": "./dist/VideoPlayer.js"
+    },
+    "./audio": {
+      "types": "./dist/AudioPlayer.d.ts",
+      "import": "./dist/AudioPlayer.js",
+      "default": "./dist/AudioPlayer.js"
+    },
+    "./css": "./dist/video-audio-player.css"
+  },
+  "sideEffects": false,
   "files": [
     "dist",
     "package.json",
@@ -57,15 +77,25 @@
     "build": "tsc && npm run build:css && rollup -c",
     "build:css": "tailwindcss -i ./src/video-audio-player.css -o ./dist/video-audio-player.css -m"
   },
-  "dependencies": {
-    "hls.js": "^1.5.20",
-    "react": ">=16.8.0",
-    "react-dom": ">=16.8.0",
-    "wavesurfer.js": ">=7.9.1"
-  },
   "peerDependencies": {
-    "react": ">=16.8.0",
-    "react-dom": ">=16.8.0"
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
+    "hls.js": ">=1.0.0",
+    "wavesurfer.js": ">=7.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": false
+    },
+    "react-dom": {
+      "optional": false
+    },
+    "hls.js": {
+      "optional": true
+    },
+    "wavesurfer.js": {
+      "optional": true
+    }
   },
   "contributors": [
     {

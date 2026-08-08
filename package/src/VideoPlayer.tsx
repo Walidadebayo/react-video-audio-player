@@ -7,7 +7,8 @@ import React, {
   useRef,
   CSSProperties,
 } from "react";
-import Hls, { Level } from "hls.js";
+import type Hls from "hls.js";
+import type { Level } from "hls.js";
 import { formatTime, playbackRateOptions } from "./lib/utils";
 import Select from "./components/Select";
 import Dropdown from "./components/Dropdown";
@@ -270,28 +271,40 @@ const VideoPlayer = ({
   const [speedToast, setSpeedToast] = useState<string | null>(null);
   const speedToastTimerRef = useRef<number | null>(null);
   const ambientCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const ambientInnerCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     if (!ambientMode || !videoRef.current) return;
     const video = videoRef.current;
     const canvas = ambientCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const innerCanvas = ambientInnerCanvasRef.current;
+    if (!canvas && !innerCanvas) return;
 
     let animId: number;
     let lastDraw = 0;
 
+    const renderFrame = () => {
+      if (video.readyState >= 2 && !video.ended) {
+        if (canvas) {
+          const ctx = canvas.getContext("2d");
+          if (ctx) ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        }
+        if (innerCanvas) {
+          const innerCtx = innerCanvas.getContext("2d");
+          if (innerCtx) innerCtx.drawImage(video, 0, 0, innerCanvas.width, innerCanvas.height);
+        }
+      }
+    };
+
     const drawFrame = (now: number) => {
       if (now - lastDraw > 40) {
         lastDraw = now;
-        if (video.readyState >= 2 && !video.paused && !video.ended) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        }
+        renderFrame();
       }
       animId = requestAnimationFrame(drawFrame);
     };
 
+    renderFrame();
     animId = requestAnimationFrame(drawFrame);
     return () => cancelAnimationFrame(animId);
   }, [ambientMode, isPlaying]);
@@ -380,6 +393,8 @@ const VideoPlayer = ({
     if (videoRef.current) {
       setIsMuted(muted);
       setVolume(muted ? 0 : defaultVolume);
+      videoRef.current.muted = muted;
+      videoRef.current.volume = muted ? 0 : defaultVolume;
     }
   }, [muted, defaultVolume]);
 
@@ -424,20 +439,36 @@ const VideoPlayer = ({
   }, [isPlaying]);
 
   useEffect(() => {
+    let videoElementClone: HTMLVideoElement | null = null;
     (async () => {
       if (!mountedRef.current) return;
       if (videoRef.current && duration && !poster) {
         try {
-          const videoElementClone =
-            videoRef.current.cloneNode() as HTMLVideoElement;
+          videoElementClone = document.createElement("video");
+          videoElementClone.muted = true;
+          videoElementClone.autoplay = false;
+          videoElementClone.crossOrigin = "anonymous";
+          videoElementClone.preload = "metadata";
+
           const mediaSrc = src || (sources && sources[0]?.src);
           if (mediaSrc) {
             videoElementClone.src = mediaSrc;
           }
-          videoElementClone.crossOrigin = "anonymous";
-          await new Promise(
-            (resolve) => (videoElementClone.onloadedmetadata = resolve),
-          );
+
+          await new Promise<void>((resolve) => {
+            if (!videoElementClone) return resolve();
+            let settled = false;
+            const settle = () => {
+              if (settled) return;
+              settled = true;
+              resolve();
+            };
+            videoElementClone.onloadedmetadata = settle;
+            videoElementClone.onerror = settle;
+            setTimeout(settle, 5000);
+          });
+
+          if (!mountedRef.current || !videoElementClone) return;
 
           const canvas = document.createElement("canvas");
           canvas.width = videoElementClone.videoWidth || 640;
@@ -448,19 +479,30 @@ const VideoPlayer = ({
           if (ctx) {
             try {
               videoElementClone.currentTime = time;
-              await new Promise(
-                (resolve) => (videoElementClone.onseeked = resolve),
-              );
-              ctx.drawImage(
-                videoElementClone,
-                0,
-                0,
-                canvas.width,
-                canvas.height,
-              );
-              const dataUrl = canvas.toDataURL();
+              await new Promise<void>((resolve) => {
+                if (!videoElementClone) return resolve();
+                let settled = false;
+                const settle = () => {
+                  if (settled) return;
+                  settled = true;
+                  resolve();
+                };
+                videoElementClone.onseeked = settle;
+                videoElementClone.onerror = settle;
+                setTimeout(settle, 5000);
+              });
 
-              if (videoRef.current) videoRef.current.poster = dataUrl;
+              if (mountedRef.current && videoElementClone) {
+                ctx.drawImage(
+                  videoElementClone,
+                  0,
+                  0,
+                  canvas.width,
+                  canvas.height,
+                );
+                const dataUrl = canvas.toDataURL();
+                if (videoRef.current) videoRef.current.poster = dataUrl;
+              }
             } catch (err) {
               console.warn(
                 "Could not generate poster (CORS or seek issue)",
@@ -470,9 +512,33 @@ const VideoPlayer = ({
           }
         } catch (err) {
           console.warn("Poster generation skipped", err);
+        } finally {
+          if (videoElementClone) {
+            try {
+              videoElementClone.pause();
+              videoElementClone.removeAttribute("src");
+              videoElementClone.load();
+            } catch {
+              /* ignore */
+            }
+            videoElementClone = null;
+          }
         }
       }
     })();
+
+    return () => {
+      if (videoElementClone) {
+        try {
+          videoElementClone.pause();
+          videoElementClone.removeAttribute("src");
+          videoElementClone.load();
+        } catch {
+          /* ignore */
+        }
+        videoElementClone = null;
+      }
+    };
   }, [duration, poster, generatePosterAt, src, sources]);
 
   useEffect(() => {
@@ -487,6 +553,22 @@ const VideoPlayer = ({
     const handleLoadedMetadata = () => {
       if (!videoElement) return;
       const mediaDuration = videoElement.duration || 0;
+
+      const attemptAutoplay = (el: HTMLVideoElement) => {
+        el.play()
+          .then(() => setIsPlaying(true))
+          .catch((err) => {
+            if (err && err.name === "NotAllowedError") {
+              el.muted = true;
+              setIsMuted(true);
+              el.play()
+                .then(() => setIsPlaying(true))
+                .catch(() => setIsPlaying(false));
+            } else {
+              setIsPlaying(false);
+            }
+          });
+      };
 
       // If we have a playlist, use the provided durations
       if (playlistConfig && playlistConfig.items.length > 0) {
@@ -537,10 +619,7 @@ const VideoPlayer = ({
           (!maxAutoPlayDuration || total <= maxAutoPlayDuration);
 
         if (isAutoplayAllowed && videoElement) {
-          videoElement
-            .play()
-            .then(() => setIsPlaying(true))
-            .catch(() => setIsPlaying(false));
+          attemptAutoplay(videoElement);
         }
       } else {
         // non-playlist behavior -- previous behavior
@@ -555,10 +634,7 @@ const VideoPlayer = ({
           (!maxAutoPlayDuration || durationVal <= maxAutoPlayDuration); // if autoplay is enabled, preview is not enabled, and either there's no max duration limit or the media duration is within that limit
 
         if (isAutoplayAllowed && videoElement) {
-          videoElement
-            .play()
-            .then(() => setIsPlaying(true))
-            .catch(() => setIsPlaying(false));
+          attemptAutoplay(videoElement);
         }
       }
     };
@@ -823,40 +899,55 @@ const VideoPlayer = ({
       );
     if (!isHls) return;
 
-    if (Hls && Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-      });
-      hls.loadSource(activeSrc);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-        const levels = data.levels.map((lvl: Level, index: number) => ({
-          level: index,
-          label: lvl.height
-            ? `${lvl.height}p`
-            : `${Math.round(lvl.bitrate / 1000)}k`,
-        }));
-        setAvailableQualities([{ level: -1, label: "Auto" }, ...levels]);
-      });
-
-      hls.on(Hls.Events.FRAG_BUFFERED, () => {
-        setIsLoading(false);
-        if (onBuffering) onBuffering(false);
-      });
-
-      hls.on(Hls.Events.LEVEL_SWITCHED, () => {
-        setIsLoading(false);
-        if (onBuffering) onBuffering(false);
-      });
-
-      hlsRef.current = hls;
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+    if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = activeSrc;
+      return;
     }
 
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const HlsModule = await import("hls.js");
+        const HlsClass = HlsModule.default || HlsModule;
+
+        if (cancelled || !HlsClass || !HlsClass.isSupported()) return;
+
+        const hls = new HlsClass({
+          enableWorker: true,
+          lowLatencyMode: true,
+        });
+        hls.loadSource(activeSrc);
+        hls.attachMedia(video);
+
+        hls.on(HlsClass.Events.MANIFEST_PARSED, (_, data: { levels: Level[] }) => {
+          const levels = data.levels.map((lvl: Level, index: number) => ({
+            level: index,
+            label: lvl.height
+              ? `${lvl.height}p`
+              : `${Math.round(lvl.bitrate / 1000)}k`,
+          }));
+          setAvailableQualities([{ level: -1, label: "Auto" }, ...levels]);
+        });
+
+        hls.on(HlsClass.Events.FRAG_BUFFERED, () => {
+          setIsLoading(false);
+          if (onBuffering) onBuffering(false);
+        });
+
+        hls.on(HlsClass.Events.LEVEL_SWITCHED, () => {
+          setIsLoading(false);
+          if (onBuffering) onBuffering(false);
+        });
+
+        hlsRef.current = hls;
+      } catch (err) {
+        console.warn("Failed to load HLS.js dynamically", err);
+      }
+    })();
+
     return () => {
+      cancelled = true;
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -1012,8 +1103,15 @@ const VideoPlayer = ({
     };
 
     const handleVolumeChange = () => {
-      if (onVolumeChange) {
-        onVolumeChange(videoElement?.volume || 1);
+      if (videoElement) {
+        setIsMuted(videoElement.muted);
+        setVolume(videoElement.muted ? 0 : videoElement.volume);
+        if (onVolumeChange) {
+          onVolumeChange(videoElement.volume);
+        }
+        if (onMuteChange) {
+          onMuteChange(videoElement.muted);
+        }
       }
     };
 
@@ -1095,32 +1193,21 @@ const VideoPlayer = ({
         }
       }
     };
-  }, [
-    onPlay,
-    onPause,
-    onEnded,
-    onError,
-    onSeeked,
-    onSeeking,
-    onVolumeChange,
-    onFullscreenChange,
-    onPictureInPictureChange,
-    resetControlTimeout,
-    autoPlay,
-    muted,
-    isPreviewEnabled,
-    maxAutoPlayDuration,
-    playlistConfig?.items?.length,
-  ]);
+  }, [onPlay, onPause, onEnded, onError, onSeeked, onSeeking, onVolumeChange, onFullscreenChange, onPictureInPictureChange, resetControlTimeout, autoPlay, muted, isPreviewEnabled, maxAutoPlayDuration, playlistConfig?.items?.length, onMuteChange]);
 
   // Media Session API
   useEffect(() => {
-    if (typeof navigator === "undefined" || !navigator.mediaSession) return;
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.mediaSession ||
+      typeof window === "undefined" ||
+      typeof window.MediaMetadata === "undefined"
+    )
+      return;
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: src || "Video",
-        mediaType: "video",
-      } as MediaMetadataInit);
+      });
       navigator.mediaSession.setActionHandler("play", () => {
         videoRef.current?.play().catch(() => {});
       });
@@ -1160,10 +1247,12 @@ const VideoPlayer = ({
   }, [src]);
 
   useEffect(() => {
-    if (getVideoRef) {
+    if (getVideoRef && videoRef.current) {
+      videoRef.current.muted = isMuted;
+      videoRef.current.volume = isMuted ? 0 : volume;
       getVideoRef(videoRef.current);
     }
-  }, [getVideoRef, videoRef]);
+  }, [getVideoRef, isMuted, volume]);
 
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -1558,7 +1647,7 @@ const VideoPlayer = ({
   );
 
   const togglePictureInPicture = useCallback(async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || typeof document === "undefined" || document.pictureInPictureEnabled === false) return;
     try {
       if (document.pictureInPictureElement) {
         const p = document.exitPictureInPicture();
@@ -1852,11 +1941,11 @@ const VideoPlayer = ({
           height,
           boxSizing: "border-box",
           minHeight: "180px",
-          overflow: "hidden",
+          overflow: ambientMode ? "visible" : "hidden",
           ...style,
         } as CSSProperties
       }
-      className={`video-player-wrapper ${className || ""} ${
+      className={`video-player-wrapper ${ambientMode ? "ambient-mode-active" : ""} ${className || ""} ${
         isFullscreen ? "fullscreen-container" : ""
       }`}
     >
@@ -1892,7 +1981,7 @@ const VideoPlayer = ({
             disableDoubleClick ? undefined : handleVideoDoubleClick
           }
           id="video"
-          autoPlay={autoPlay && !isPreviewEnabled && !maxAutoPlayDuration}
+          autoPlay={autoPlay && !isPreviewEnabled && (!maxAutoPlayDuration || (duration > 0 && duration <= maxAutoPlayDuration))}
           muted={isMuted}
           loop={Boolean(
             loop && !(playlistConfig && playlistConfig.items.length > 0),
@@ -1917,6 +2006,18 @@ const VideoPlayer = ({
               <source key={src} src={src} type={type} />
             ))}
         </video>
+
+        {ambientMode && (
+          <div className="ambient-glow-inner-wrapper">
+            <canvas
+              ref={ambientInnerCanvasRef}
+              className="ambient-glow-inner-canvas"
+              width={64}
+              height={36}
+              aria-hidden
+            />
+          </div>
+        )}
 
         {isLoading && (
           <div className="loading-overlay">

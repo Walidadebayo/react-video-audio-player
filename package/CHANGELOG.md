@@ -5,6 +5,22 @@ All notable changes to `react-video-audio-player` will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.4] - 2026-08-08
+
+### 🚀 Performance & Bundle Optimization
+- **Dynamic Lazy-Loading for Heavy Drivers**: Converted top-of-file static imports of `hls.js` and `wavesurfer.js` to dynamic runtime `await import(...)` calls. Plain `.mp4` video and `.mp3` audio consumers now enjoy a ~850KB lighter initial bundle footprint.
+- **Tree-Shaking & Subpath Package Exports**: Configured `"sideEffects": false` and modern `"exports"` map in `package.json` for subpath component imports (`react-video-audio-player/video`, `react-video-audio-player/audio`, `react-video-audio-player/css`).
+- **Safari Hardware HLS Priority**: Prioritized native OS hardware-accelerated HLS (`canPlayType("application/vnd.apple.mpegurl")`) before dynamically loading `hls.js`.
+
+### 🐛 Fixed
+- **Background Audio Leak on Poster Generation**: Fixed audio leak caused by `videoRef.current.cloneNode()` inheriting autoplay attributes by replacing clone logic with an isolated, unrendered HTML5 video element configured with `muted = true`, `autoplay = false`, and explicit source/DOM cleanup.
+- **`autoPlay` Failure & Muted Autoplay Fallback**: Resolved autoplay failure caused by lazy loading delay (`shouldLoadMedia`) and added `attemptAutoplay` fallback to retry playback in muted mode if browser security policies reject unmuted autoplay with `NotAllowedError`.
+- **Muted State Sync on `getVideoRef`**: Imperatively synchronized `videoRef.current.muted` and `videoRef.current.volume` on mount, prop updates, and ref callbacks, ensuring videos do not start muted when `getVideoRef` is used.
+- **Android WebView & TWA Crash Prevention**: Guarded `new MediaMetadata()` with feature detection (`typeof window.MediaMetadata !== "undefined"`) to prevent fatal `ReferenceError` crashes in Android WebViews and TWAs.
+- **Promise Rejection Safety**: Added `.catch(() => {})` handlers to all `.play()` invocations in `<AudioPlayer>` to eliminate `Uncaught (in promise)` browser console errors.
+- **Peer Dependencies Optimization**: Moved `react` & `react-dom` strictly to `peerDependencies` (`^18.0.0 || ^19.0.0`) and updated `hls.js` (`>=1.0.0`) & `wavesurfer.js` (`>=7.0.0`) to open-ended peer ranges to prevent `npm ERESOLVE` version conflict errors.
+- **Picture-in-Picture Feature Guard**: Added `document.pictureInPictureEnabled` feature check before requesting PiP in `<VideoPlayer>`.
+
 ## [1.6.3] - 2026-07-29
 
 ### 🐛 Fixed

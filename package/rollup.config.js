@@ -39,6 +39,8 @@ const config = [
     output: {
       file: 'dist/index.umd.js',
       format: 'umd',
+      name: 'ReactVideoAudioPlayer',
+      inlineDynamicImports: true,
     },
     plugins: [
       resolve(),
