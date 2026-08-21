@@ -159,6 +159,7 @@ describe("AudioPlayer", () => {
     });
 
     expect(container.querySelector("audio")).toBeInTheDocument();
+    expect(container.querySelector(".fallback-progress-container")).toBeInTheDocument();
     expect(mockWaveSurferCreate).toHaveBeenCalled();
   });
 

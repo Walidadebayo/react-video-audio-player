@@ -14,8 +14,7 @@ import type { Level } from "hls.js";
 import { formatTime, playbackRateOptions } from "./lib/utils";
 import { updateRangeBackground } from "./lib/utils";
 import { useInView } from "./lib/useInView";
-import { loadAudioPeaks } from "./lib/peaks";
-import Select from "./components/Select";
+ import Select from "./components/Select";
 import Dropdown from "./components/Dropdown";
 import { Chapter, PlaylistConfig } from "./VideoPlayer";
 import "./video-audio-player.css";
@@ -461,6 +460,18 @@ const AudioPlayer = ({
     const handleResize = () => {
       if (audioContainer) {
         setContainerWidth(audioContainer.offsetWidth);
+        if (waveSurfer.current) {
+          try {
+            const wsAny = waveSurfer.current as unknown as {
+              render?: () => void;
+            };
+            if (typeof wsAny.render === "function") {
+              wsAny.render();
+            }
+          } catch {
+            /* ignore */
+          }
+        }
       }
     };
 
@@ -793,68 +804,7 @@ const AudioPlayer = ({
     if (waveformRef.current) {
       (async () => {
         const container = waveformRef.current!;
-        let durationSeconds = 0;
-        try {
-          const probe = document.createElement("audio");
-          probe.crossOrigin = "anonymous";
-          probe.preload = "metadata";
-          probe.src = activeSrc;
-          const probeTimeoutMs = 15000;
-          await new Promise<void>((resolve) => {
-            let settled = false;
-            const settle = () => {
-              if (settled) return;
-              settled = true;
-              cleanup();
-              resolve();
-            };
-            const onLoaded = () => {
-              durationSeconds = probe.duration || 0;
-              settle();
-            };
-            const onCanPlay = () => {
-              if (durationSeconds) {
-                settle();
-              }
-            };
-            const onError = () => {
-              settle();
-            };
-            const timeoutId = window.setTimeout(() => {
-              settle();
-            }, probeTimeoutMs);
-            function cleanup() {
-              window.clearTimeout(timeoutId);
-              probe.removeEventListener("loadedmetadata", onLoaded);
-              probe.removeEventListener("canplay", onCanPlay);
-              probe.removeEventListener("error", onError);
-              try {
-                probe.pause();
-                probe.removeAttribute("src");
-                probe.load();
-              } catch {
-                /* Ignore cleanup errors */
-              }
-            }
-            probe.addEventListener("loadedmetadata", onLoaded);
-            probe.addEventListener("canplay", onCanPlay);
-            probe.addEventListener("error", onError);
-          });
-        } catch (err) {
-          console.warn("Audio probe failed", err);
-        }
-        if (cancelled) return;
-        const LONG_AUDIO_SECONDS = 30 * 60; // 30 minutes
-        const isLong = durationSeconds && durationSeconds > LONG_AUDIO_SECONDS;
-        let peaks: number[] | null = null;
-
-        if (isLong) {
-          const peakCount = Math.max(
-            Math.min(Math.round((container.clientWidth || 0) * 2), 4096),
-            1024,
-          );
-          peaks = await loadAudioPeaks(activeSrc, peakCount);
-        }
+        setIsLoading(true);
 
         const wsOptions: WaveSurferOptions = {
           container,
@@ -864,48 +814,52 @@ const AudioPlayer = ({
           progressColor: progressColor || accentColor,
           cursorColor: "#ffffff",
           cursorWidth: 2,
-          normalize: !isLong,
-          barWidth: barWidth !== undefined ? barWidth : isLong ? 3 : 2,
-          barGap: barGap !== undefined ? barGap : isLong ? 2 : 1,
+          normalize: true,
+          barWidth: barWidth !== undefined ? barWidth : 2,
+          barGap: barGap !== undefined ? barGap : 1,
           ...(barRadius !== undefined ? { barRadius } : {}),
         };
-        if (peaks?.length) {
-          wsOptions.peaks = [Float32Array.from(peaks)];
-          wsOptions.duration = durationSeconds;
-        }
-        if (isLong) {
-          wsOptions.backend = "MediaElement";
-        }
 
-        setIsLoading(true);
         const WaveSurferModule = await import("wavesurfer.js");
         const WaveSurferClass = WaveSurferModule.default || WaveSurferModule;
         if (cancelled) return;
 
-        waveSurfer.current = WaveSurferClass.create(wsOptions);
-        setCurrentTime(0);
+        let readyFired = false;
+        const markReady = () => {
+          if (readyFired || cancelled) return;
+          readyFired = true;
+          if (fallbackTimer) {
+            clearTimeout(fallbackTimer);
+            fallbackTimer = null;
+          }
+          handleReady();
+        };
+        readyHandlerRef = markReady;
+
+        const onWsPlay = () => {
+          markReady();
+          handlePlay();
+        };
+
+        const onWsProgress = () => {
+          markReady();
+          handleProgress();
+        };
 
         try {
-          // install a ready wrapper so we can fallback if "ready" never fires
-          let readyFired = false;
-          const markReady = () => {
-            if (readyFired) return;
-            readyFired = true;
-            if (fallbackTimer) {
-              clearTimeout(fallbackTimer);
-              fallbackTimer = null;
-            }
-            handleReady();
-          };
-          readyHandlerRef = markReady;
+          waveSurfer.current = WaveSurferClass.create(wsOptions);
+          setCurrentTime(0);
 
-          waveSurfer.current.on("ready", readyHandlerRef);
+          waveSurfer.current.on("ready", markReady);
+          waveSurfer.current.on("decode", markReady);
+          waveSurfer.current.on("redraw", markReady);
           waveSurfer.current.on("finish", handleEnded);
-          waveSurfer.current.on("play", handlePlay);
+          waveSurfer.current.on("play", onWsPlay);
           waveSurfer.current.on("pause", handlePause);
           waveSurfer.current.on("error", handleError);
-          waveSurfer.current.on("audioprocess", handleProgress);
-          waveSurfer.current.on("timeupdate", handleProgress);
+          waveSurfer.current.on("audioprocess", onWsProgress);
+          waveSurfer.current.on("timeupdate", onWsProgress);
+
           const media =
             useWaveform && waveSurfer.current.getMediaElement
               ? waveSurfer.current.getMediaElement()
@@ -914,9 +868,8 @@ const AudioPlayer = ({
             media.loop = loop;
             media.onvolumechange = handleVolumeChange;
           }
-          const shouldAutoplay =
-            autoPlay &&
-            (!maxAutoPlayDuration || durationSeconds <= maxAutoPlayDuration);
+
+          const shouldAutoplay = autoPlay;
           if (shouldAutoplay && waveSurfer.current) {
             waveSurfer.current.play().catch(() => {
               if (waveSurfer.current) {
@@ -931,10 +884,20 @@ const AudioPlayer = ({
             waveSurfer.current.on("click", handleClick);
           }
 
+          // Check if duration is already known synchronously or quickly
+          try {
+            const knownDur = waveSurfer.current.getDuration() || 0;
+            if (knownDur > 0) {
+              markReady();
+            }
+          } catch {
+            /* ignore */
+          }
+
           window.setTimeout(() => {
             try {
-              if (!readyFired) {
-                const knownDuration = waveSurfer.current?.getDuration?.() || 0;
+              if (!readyFired && waveSurfer.current) {
+                const knownDuration = waveSurfer.current.getDuration?.() || 0;
                 if (knownDuration > 0) {
                   markReady();
                 }
@@ -944,7 +907,7 @@ const AudioPlayer = ({
             }
           }, 0);
 
-          // if ready doesn't fire within reasonable time, fallback to plain audio element
+          // fallback if ready never fires within 15s
           fallbackTimer = window.setTimeout(() => {
             try {
               if (!readyFired) {
@@ -968,6 +931,7 @@ const AudioPlayer = ({
           }, 15000);
         } catch (err) {
           console.warn("Error binding WaveSurfer events", err);
+          handleError();
         }
 
         if (typeof seekTo === "number" && waveSurfer.current) {
@@ -1000,8 +964,13 @@ const AudioPlayer = ({
       const ws = waveSurfer.current;
       if (ws) {
         try {
-          if (readyHandlerRef) ws.un("ready", readyHandlerRef);
-          else ws.un("ready", handleReady);
+          if (readyHandlerRef) {
+            ws.un("ready", readyHandlerRef);
+            ws.un("decode", readyHandlerRef);
+            ws.un("redraw", readyHandlerRef);
+          } else {
+            ws.un("ready", handleReady);
+          }
           ws.un("finish", handleEnded);
           ws.un("play", handlePlay);
           ws.un("pause", handlePause);
@@ -1583,9 +1552,32 @@ const AudioPlayer = ({
           ) : (
             <div
               ref={waveformRef}
-              className="waveform relative"
-              style={{ width: "100%", height: "100%", cursor: "pointer", position: "relative" }}
+              className="waveform relative fallback-waveform"
+              style={{
+                width: "100%",
+                height: "100%",
+                minHeight: "48px",
+                display: "flex",
+                alignItems: "center",
+                cursor: "pointer",
+                position: "relative",
+              }}
               aria-label="Audio waveform"
+              onClick={(e) => {
+                if (!audioElRef.current || duration <= 0) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                if (!rect.width) return;
+                const clickX = e.clientX - rect.left;
+                const pct = Math.max(0, Math.min(1, clickX / rect.width));
+                const newTime = pct * duration;
+                try {
+                  audioElRef.current.currentTime = newTime;
+                  setCurrentTime(newTime);
+                  if (onSeeked) onSeeked(newTime);
+                } catch {
+                  /* ignore */
+                }
+              }}
             >
               {isLoading && (
                 <div className="loading-overlay">
@@ -1610,6 +1602,28 @@ const AudioPlayer = ({
                   })}
                 </div>
               )}
+              <div
+                className="fallback-progress-container"
+                style={{
+                  width: "100%",
+                  height: "6px",
+                  backgroundColor: waveColor || "rgba(148, 163, 184, 0.4)",
+                  borderRadius: "3px",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  className="fallback-progress-bar"
+                  style={{
+                    width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`,
+                    height: "100%",
+                    backgroundColor: progressColor || accentColor,
+                    borderRadius: "3px",
+                    transition: "width 0.1s linear",
+                  }}
+                />
+              </div>
               <audio
                 ref={audioElRef}
                 src={activeSrc}
@@ -1617,7 +1631,7 @@ const AudioPlayer = ({
                 autoPlay={autoPlay}
                 muted={muted}
                 loop={loop}
-                style={{ width: "100%", display: "block" }}
+                style={{ display: "none" }}
               />
             </div>
           )}
